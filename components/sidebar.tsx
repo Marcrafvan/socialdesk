@@ -14,7 +14,7 @@ export default function Sidebar() {
       {/* Logo Area */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-wider">SocialDesk</h1>
-        {/* We use text-accent here */}
+        {/* Text-accent */}
         <p className="text-accent text-xs">Internship Project</p>
       </div>
 
@@ -25,7 +25,7 @@ export default function Sidebar() {
             <li key={item.name}>
               <Link
                 href={item.href}
-                // hover:bg-secondary adds interaction using your palette
+                // hover:bg-secondary adds interaction using the palette
                 className="block px-4 py-2 rounded transition-colors hover:bg-secondary hover:text-white"
               >
                 {item.name}
