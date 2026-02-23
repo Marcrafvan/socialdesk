@@ -1,16 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Set cookie to mock authentication
     Cookies.set("auth-token", "valid-token", { expires: 1 });
     router.push("/");
   };
@@ -32,6 +35,7 @@ export default function LoginPage() {
       {/* Form */}
       <form onSubmit={handleLogin} className="w-full max-w-sm flex flex-col items-center gap-4">
         
+        {/* Username Field */}
         <input 
           type="text" 
           placeholder="Enter Username" 
@@ -39,12 +43,26 @@ export default function LoginPage() {
           required
         />
         
-        <input 
-          type="password" 
-          placeholder="Enter Password" 
-          className="w-full bg-[#B8D1E6] placeholder-gray-600 text-gray-800 px-6 py-3.5 rounded-full focus:outline-none focus:ring-2 focus:ring-primary/50 font-medium"
-          required
-        />
+        {/* Password Field (Updated with Eye Icon) */}
+        <div className="relative w-full">
+          <input 
+            // 4. Dynamically change the input type based on state
+            type={showPassword ? "text" : "password"} 
+            placeholder="Enter Password" 
+            // Added 'pr-12' to give the text breathing room so it doesn't hide behind the icon
+            className="w-full bg-[#B8D1E6] placeholder-gray-600 text-gray-800 pl-6 pr-12 py-3.5 rounded-full focus:outline-none focus:ring-2 focus:ring-primary/50 font-medium"
+            required
+          />
+          
+          {/* 5. The Toggle Button */}
+          <button
+            type="button" // Important: 'button' prevents it from submitting the form!
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
+        </div>
 
         <div className="w-full flex justify-end px-2">
           <Link href="#" className="text-sm text-gray-700 hover:text-primary transition-colors">
