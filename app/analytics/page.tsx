@@ -12,8 +12,7 @@ import {
   Heart,
   MessageCircle,
   Share2,
-  Download,
-  ImageDown
+  Download
 } from "lucide-react";
 
 import { FaTiktok, FaPinterest } from "react-icons/fa";
@@ -145,7 +144,7 @@ export default function AnalyticsPage() {
               id="analytics-export-btn"
               name="analytics-export"
               onClick={() => setExportOpen(!exportOpen)}
-              className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors shadow-sm"
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
               title="Export"
               aria-label="Export data"
               aria-expanded={exportOpen}
@@ -157,22 +156,32 @@ export default function AnalyticsPage() {
               <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1.5 overflow-hidden">
                 <button
                   onClick={() => setExportOpen(false)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  <FileSpreadsheet size={16} className="text-gray-400 shrink-0" /> Export as CSV
+                  <FileSpreadsheet size={16} className="text-green-500 shrink-0" /> Export as CSV
                 </button>
                 <button
                   onClick={() => setExportOpen(false)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  <FileText size={16} className="text-gray-400 shrink-0" /> Export as PDF
+                  <FileText size={16} className="text-red-500 shrink-0" /> Export as PDF
                 </button>
                 <div className="border-t border-gray-100 my-1" />
                 <button
                   onClick={() => setExportOpen(false)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  <ImageDown size={16} className="text-gray-400 shrink-0" /> Export Page Stats (JPG)
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="url(#jpgGradient)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                    <defs>
+                      <linearGradient id="jpgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#ef4444" />
+                        <stop offset="100%" stopColor="#3b82f6" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg> Export Page Stats (JPG)
                 </button>
               </div>
             )}

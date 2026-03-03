@@ -11,7 +11,6 @@ import {
   BarChart3, 
   Link as LinkIcon, 
   FileText, 
-  LogOut,
   X,
   Users
 } from "lucide-react";
@@ -106,15 +105,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           })}
         </nav>
 
-        <div className="p-4 mb-4 mt-auto">
-          <Link 
-            href="/logout"
-            className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <LogOut size={20} />
-            <span className="text-sm font-medium">Log out</span>
-          </Link>
-        </div>
+
       </aside>
     </>
   );
