@@ -12,7 +12,8 @@ import {
   Heart,
   MessageCircle,
   Share2,
-  Download
+  Download,
+  MoreHorizontal
 } from "lucide-react";
 
 import { FaTiktok, FaPinterest } from "react-icons/fa";
@@ -20,6 +21,8 @@ import { FaTiktok, FaPinterest } from "react-icons/fa";
 import { 
   LineChart, 
   Line, 
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   Cell,
@@ -77,6 +80,25 @@ export default function AnalyticsPage() {
     { month: "Nov", rate: 30 }, { month: "Dec", rate: 50 },
   ];
   const barColors = ['#A3CEF1', '#D6E6F2', '#8B8C89', '#FDE68A', '#FBCFE8', '#E9D5FF', '#FECDD3', '#E5E7EB', '#A7F3D0', '#BAE6FD', '#FED7AA'];
+
+  // BACKEND NOTE: Replace with real hourly visitor/engagement data per page/platform via API (e.g. GET /analytics/best-time?page=...&platform=...)
+  // The `totalVisitors` value should be the sum across all time slots for the selected period.
+  const bestTimeData = [
+    { time: "12am", visitors: 500 },
+    { time: "2am",  visitors: 300 },
+    { time: "4am",  visitors: 800 },
+    { time: "6am",  visitors: 2500 },
+    { time: "8am",  visitors: 5500 },
+    { time: "10am", visitors: 9000 },
+    { time: "12pm", visitors: 14000 },
+    { time: "2pm",  visitors: 16500 },
+    { time: "4pm",  visitors: 15800 },
+    { time: "6pm",  visitors: 11500 },
+    { time: "8pm",  visitors: 10000 },
+    { time: "10pm", visitors: 11000 },
+    { time: "12am", visitors: 8000 },
+  ];
+  const bestTimeVisitors = "22,658"; // BACKEND NOTE: Replace with the actual total visitors count from the API
 
   // --- MOCK DATA FOR "SPECIFIC PAGE" VIEW ---
   // BACKEND NOTE: Fetch this table data based on the selectedPage, selectedPlatform, and activeTab filters
@@ -275,9 +297,95 @@ export default function AnalyticsPage() {
       {/* ========================================= */}
       {selectedPage === "All Pages" ? (
         <>
-          {/* Top Posts & Engagement Bar Chart */}
+          {/* ========================================================================= */}
+          {/* Best Time for Posting & Engagement Rate Trend                             */}
+          {/* Only visible on "All Pages" view — hidden when a specific page is chosen  */}
+          {/* ========================================================================= */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 min-w-0 max-w-full overflow-hidden">
+
+            {/* Best Time for Posting */}
             <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 min-w-0 overflow-hidden">
+              <div className="flex items-start justify-between mb-2 sm:mb-4">
+                <h3 className="font-bold text-sm sm:text-base lg:text-lg text-gray-900">Best Time for Posting</h3>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="text-right">
+                    <p className="text-[9px] sm:text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Visitors</p>
+                    {/* BACKEND NOTE: Replace bestTimeVisitors with the API-returned total visitor count */}
+                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{bestTimeVisitors}</p>
+                  </div>
+                  <button className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer p-1 rounded-lg hover:bg-gray-100" aria-label="More options">
+                    <MoreHorizontal size={16} />
+                  </button>
+                </div>
+              </div>
+              <div className="w-full h-[160px] sm:h-[200px] lg:h-[220px] min-w-0">
+                {/* BACKEND NOTE: bestTimeData drives this chart — replace with real hourly data from the API */}
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={bestTimeData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="bestTimeGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                    <XAxis
+                      dataKey="time"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fill: '#9ca3af' }}
+                      dy={8}
+                      ticks={["12am", "6am", "12pm", "6pm", "12am"]}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 9, fill: '#9ca3af' }}
+                      width={45}
+                      tickFormatter={(value: number) => value >= 1000 ? `${(value / 1000).toFixed(0)},000` : value.toString()}
+                    />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      formatter={(value: number | undefined) => [value !== undefined ? value.toLocaleString() : '', 'Visitors']}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="visitors"
+                      stroke="#3b82f6"
+                      strokeWidth={2.5}
+                      fill="url(#bestTimeGradient)"
+                      dot={false}
+                      activeDot={{ r: 4, fill: '#3b82f6' }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Engagement Rate Trend */}
+            <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 min-w-0 overflow-hidden self-start">
+              <h3 className="font-bold text-sm sm:text-base lg:text-lg text-gray-900 mb-2 sm:mb-4">Engagement Rate Trend</h3>
+              <div className="w-full h-[160px] sm:h-[200px] lg:h-[220px] min-w-0">
+                {/* BACKEND NOTE: Replace engagementTrendBarData with real monthly engagement rates from the API */}
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={engagementTrendBarData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                    <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    <Bar dataKey="rate" radius={[4, 4, 0, 0]} barSize={20}>
+                      {engagementTrendBarData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={barColors[index % barColors.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Top Posts this Week — full width in All Pages view */}
+          <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 min-w-0 overflow-hidden">
               <h3 className="font-bold text-sm sm:text-base lg:text-lg text-gray-900 mb-2 sm:mb-4">Top Posts this Week</h3>
               <div className="flex flex-col divide-y divide-gray-50">
                 {topPosts.map((post) => (
@@ -322,26 +430,6 @@ export default function AnalyticsPage() {
                   </div>
                 ))}
               </div>
-            </div>
-
-            <div className="bg-white p-3 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 min-w-0 overflow-hidden self-start">
-              <h3 className="font-bold text-sm sm:text-base lg:text-lg text-gray-900 mb-2 sm:mb-4">Engagement Rate Trend</h3>
-              <div className="w-full h-[180px] sm:h-[220px] lg:h-[250px] min-w-0">
-                {/* BACKEND NOTE: Updated to BarChart as per new wireframe */}
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={engagementTrendBarData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
-                    <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                    <Bar dataKey="rate" radius={[4, 4, 0, 0]} barSize={20}>
-                      {engagementTrendBarData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={barColors[index % barColors.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
           </div>
         </>
       ) : (
