@@ -381,9 +381,9 @@ export default function AccountsPage() {
                 <Trash2 size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-semibold">Delete account</h3>
+                <h3 className="text-lg font-semibold">Remove account</h3>
                 <p className="text-sm text-muted">
-                  Are you sure you want to delete the account linked to{" "}
+                  Are you sure you want to remove the account linked to{" "}
                   <span className="font-semibold">
                     {disconnectTarget.username ?? disconnectTarget.name}
                   </span>
@@ -416,7 +416,7 @@ export default function AccountsPage() {
                     : "bg-red-200 opacity-60 cursor-not-allowed"
                 }`}
               >
-                Delete
+                Remove
               </button>
               <button
                 onClick={closeModals}
