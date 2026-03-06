@@ -3,6 +3,8 @@
 import Link from "next/link";
 import Image from "next/image"; 
 import { usePathname } from "next/navigation";
+import Cookies from "js-cookie";
+import { useEffect, useState } from "react";
 import { 
   LayoutDashboard, 
   CalendarClock, 
@@ -11,6 +13,7 @@ import {
   FileText, 
   LogOut,
   X,
+  Users
 } from "lucide-react";
 
 interface SidebarProps {
@@ -20,18 +23,31 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  const menuItems = [
-    { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "Scheduler", href: "/schedule", icon: CalendarClock },
-    { name: "Analytics", href: "/analytics", icon: BarChart3 },
-    { name: "Accounts", href: "/accounts", icon: LinkIcon },
-    { name: "Posts", href: "/posts", icon: FileText },
+  useEffect(() => {
+    // Check if the logged-in user has the admin role
+    const role = Cookies.get("user-role");
+    if (role === "admin") {
+      setIsAdmin(true);
+    }
+  }, []);
+
+  // --- NEW: Cleaner conditional menu logic ---
+  const allMenuItems = [
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, reqAdmin: false },
+    { name: "Scheduler", href: "/schedule", icon: CalendarClock, reqAdmin: false },
+    { name: "Analytics", href: "/analytics", icon: BarChart3, reqAdmin: false },
+    { name: "Accounts", href: "/accounts", icon: LinkIcon, reqAdmin: true }, // Accounts restricted
+    { name: "Posts", href: "/posts", icon: FileText, reqAdmin: false },
+    { name: "Management", href: "/management", icon: Users, reqAdmin: true }, // Management restricted
   ];
+
+  // Filter the list: Only show items where reqAdmin is false, OR if the user is an admin
+  const menuItems = allMenuItems.filter(item => !item.reqAdmin || isAdmin);
 
   return (
     <>
-      {/* 1. Overlay for mobile:*/}
       {isOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-40 md:hidden transition-opacity"
@@ -39,13 +55,11 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         />
       )}
 
-      {/* 2. Main Sidebar */}
       <aside
         className={`w-64 bg-white h-screen fixed left-0 top-0 flex flex-col z-50 border-r border-gray-100 font-sans transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
         } md:translate-x-0 md:shadow-none`}
       >
-        {/* Close button for mobile */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg md:hidden z-50"
@@ -53,7 +67,6 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           <X size={20} />
         </button>
 
-        {/* Logo Section */}
         <div className="flex flex-col px-6 pt-8 pb-4">
           <div className="relative w-full h-20"> 
               <Image 
@@ -67,7 +80,6 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           </div>
         </div>
 
-        {/* Navigation Menu */}
         <nav className="flex-1 overflow-y-auto px-4 space-y-2">
           {menuItems.map((item) => {
             const isActive = pathname === item.href;
@@ -75,7 +87,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               <Link
                 key={item.name}
                 href={item.href}
-                onClick={onClose} // Closes menu when a link is clicked on mobile
+                onClick={onClose} 
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group ${
                   isActive 
                     ? "bg-primary text-white shadow-md shadow-primary/30" 
@@ -95,10 +107,10 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           })}
         </nav>
 
-        {/* Log Out:*/}
         <div className="p-4 mb-4 mt-auto">
           <Link 
-            href="/logout"
+            href="/login"
+            onClick={() => Cookies.remove("user-role")} // Helper to easily clear cookies on logout
             className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
             <LogOut size={20} />
