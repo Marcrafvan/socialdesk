@@ -36,7 +36,8 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  ReferenceArea
+  ReferenceLine,
+  ReferenceDot
 } from "recharts";
 
 export default function AnalyticsPage() {
@@ -161,14 +162,46 @@ export default function AnalyticsPage() {
     { id: 5, title: "FibeiTravel.com | Extend the Romance — 11-Day Luzon Tour 💗", platform: "Pinterest", caption: "Valentine's may be over, but love and adventure continue! Explore Luzon's...", date: "February 18, 2026", views: "23k", reacts: "6k", comments: "450", shares: "120", engagement: "23%", status: "Completed" },
   ];
 
-  const pageStatsData = [
+  type PageStatsPoint = {
+    month: string;
+    followers: number;
+    likes: number;
+    views: number;
+    shares: number;
+    comments: number;
+  };
+
+  type PageStatsSeriesKey = "followers" | "likes" | "views" | "shares" | "comments";
+
+  const pageStatsData: PageStatsPoint[] = [
     { month: "Jan", followers: 15000, likes: 8000, views: 12000, shares: 3000, comments: 5000 },
-    { month: "Feb", followers: 20000, likes: 12000, views: 18000, shares: 5000, comments: 7000 },
-    { month: "Mar", followers: 35000, likes: 25000, views: 30000, shares: 8000, comments: 12000 },
-    { month: "Apr", followers: 28000, likes: 18000, views: 24000, shares: 6000, comments: 9000 },
-    { month: "May", followers: 22000, likes: 10000, views: 20000, shares: 4500, comments: 6500 },
-    { month: "Jun", followers: 30000, likes: 15000, views: 26000, shares: 7000, comments: 10000 },
+    { month: "Feb", followers: 20000, likes: 12000, views: 18000, shares: 5200, comments: 13000 },
+    { month: "Mar", followers: 35000, likes: 21000, views: 26000, shares: 7600, comments: 11000 },
+    { month: "Apr", followers: 28000, likes: 27000, views: 24000, shares: 6800, comments: 9000 },
+    { month: "May", followers: 22000, likes: 16000, views: 20500, shares: 9000, comments: 7800 },
+    { month: "Jun", followers: 30000, likes: 19000, views: 32000, shares: 7000, comments: 10000 },
   ];
+
+  const pageStatsSeries: Array<{ key: PageStatsSeriesKey; color: string }> = [
+    { key: "followers", color: "#4e9a6e" },
+    { key: "likes", color: "#c4882a" },
+    { key: "views", color: "#5278c0" },
+    { key: "shares", color: "#7565b8" },
+    { key: "comments", color: "#c46080" },
+  ];
+
+  const pageStatsPeaks = pageStatsSeries.map((series) => {
+    const peakPoint = pageStatsData.reduce((maxPoint, point) =>
+      point[series.key] > maxPoint[series.key] ? point : maxPoint,
+      pageStatsData[0]
+    );
+
+    return {
+      ...series,
+      month: peakPoint.month,
+      value: peakPoint[series.key],
+    };
+  });
 
   const engagementTrendBarData = [
     { month: "Jan", rate: 20 }, { month: "Feb", rate: 14 }, { month: "Mar", rate: 25 },
@@ -216,6 +249,26 @@ export default function AnalyticsPage() {
       default: return "bg-gray-100 text-gray-700";
     }
   };
+
+  const formatPeakValue = (value: number) =>
+    value >= 1000 ? `${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k` : value.toString();
+
+  const renderPeakTag = (color: string, value: number, xOffset = 0) =>
+    ({ viewBox }: { viewBox?: { x?: number; y?: number } }) => {
+      const x = (viewBox?.x ?? 0) + xOffset;
+      const y = viewBox?.y ?? 0;
+      const text = formatPeakValue(value);
+      const width = text.length > 3 ? 32 : 28;
+
+      return (
+        <g>
+          <rect x={x - width / 2} y={y - 20} width={width} height={14} rx={3} fill={color} />
+          <text x={x} y={y - 10} textAnchor="middle" fontSize={8} fontWeight={600} fill="#ffffff">
+            {text}
+          </text>
+        </g>
+      );
+    };
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4 lg:gap-6 overflow-x-hidden overflow-y-visible w-full max-w-full min-w-0 box-border">
@@ -511,15 +564,38 @@ export default function AnalyticsPage() {
           </div>
           <div className="w-full h-[180px] sm:h-[220px] lg:h-[250px] min-w-0">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={pageStatsData} margin={{ top: 5, right: 5, left: -5, bottom: 0 }}>
+              <LineChart data={pageStatsData} margin={{ top: 24, right: 5, left: -5, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} dy={8} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#9ca3af' }} width={35} tickFormatter={(value: number) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value.toString()} />
                 <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value: number | undefined) => [value !== undefined ? value.toLocaleString() : '', '']} />
-                {/* Reference highlight bars — mark notable periods (e.g. peak month, campaign window) */}
-                {/* BACKEND NOTE: Replace x1/x2 with actual notable date ranges from API (e.g. campaign start/end) */}
-                <ReferenceArea x1="Mar" x2="Mar" fill="#4e9a6e" fillOpacity={0.1} stroke="#4e9a6e" strokeOpacity={0.25} strokeWidth={1} />
-                <ReferenceArea x1="Jun" x2="Jun" fill="#c4882a" fillOpacity={0.1} stroke="#c4882a" strokeOpacity={0.25} strokeWidth={1} />
+                {/* Peak highlight bars and badges generated from the current data points */}
+                {pageStatsPeaks.map((peak, index) => (
+                  <ReferenceLine
+                    key={`peak-line-${peak.key}`}
+                    x={peak.month}
+                    stroke={peak.color}
+                    strokeOpacity={0.14}
+                    strokeWidth={22 - index * 3}
+                    ifOverflow="extendDomain"
+                  />
+                ))}
+                {pageStatsPeaks.map((peak) => {
+                  const sameMonthPeaks = pageStatsPeaks.filter((item) => item.month === peak.month);
+                  const monthIndex = sameMonthPeaks.findIndex((item) => item.key === peak.key);
+                  const xOffset = (monthIndex - (sameMonthPeaks.length - 1) / 2) * 14;
+
+                  return (
+                    <ReferenceDot
+                      key={`peak-dot-${peak.key}`}
+                      x={peak.month}
+                      y={peak.value}
+                      r={0}
+                      ifOverflow="extendDomain"
+                      label={renderPeakTag(peak.color, peak.value, xOffset)}
+                    />
+                  );
+                })}
                 <Line type="monotone" dataKey="followers" stroke="#4e9a6e" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#4e9a6e' }} />
                 <Line type="monotone" dataKey="likes" stroke="#c4882a" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#c4882a' }} />
                 <Line type="monotone" dataKey="views" stroke="#5278c0" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#5278c0' }} />
