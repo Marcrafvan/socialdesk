@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { 
   FileText, 
@@ -19,7 +20,8 @@ import {
   CalendarDays,
   Scan,
   Star,
-  ImageIcon
+  ImageIcon,
+  SlidersHorizontal
 } from "lucide-react";
 
 import { FaTiktok, FaPinterest } from "react-icons/fa";
@@ -46,6 +48,7 @@ export default function AnalyticsPage() {
   const [selectedPlatform, setSelectedPlatform] = useState("All Platforms");
   const [activeTab, setActiveTab] = useState("All");
   const [exportOpen, setExportOpen] = useState(false);
+  const router = useRouter();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [saveModal, setSaveModal] = useState<null | "csv" | "pdf" | "chart">(null);
   const [saveModalDateRange, setSaveModalDateRange] = useState({ from: "", to: "" });
@@ -57,6 +60,9 @@ export default function AnalyticsPage() {
   const [calMode, setCalMode] = useState<'day' | 'month' | 'year'>('day');
   const exportRef = useRef<HTMLDivElement>(null);
   const datePickerRef = useRef<HTMLDivElement>(null);
+  const pageStatsFilterRef = useRef<HTMLDivElement>(null);
+  const [pageStatsFilter, setPageStatsFilter] = useState<PageStatsSeriesKey[]>(["followers", "likes", "views", "shares", "comments"]);
+  const [pageStatsFilterOpen, setPageStatsFilterOpen] = useState(false);
 
   // --- DATE PICKER HELPERS ---
   const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -143,6 +149,9 @@ export default function AnalyticsPage() {
       if (datePickerRef.current && !datePickerRef.current.contains(e.target as Node)) {
         setDatePickerOpen(false);
       }
+      if (pageStatsFilterRef.current && !pageStatsFilterRef.current.contains(e.target as Node)) {
+        setPageStatsFilterOpen(false);
+      }
       // Close any open component dropdown when clicking outside a [data-dropdown] container
       if (!(e.target as Element).closest('[data-dropdown]')) {
         setOpenDropdown(null);
@@ -177,6 +186,14 @@ export default function AnalyticsPage() {
 
   type PageStatsSeriesKey = "followers" | "likes" | "views" | "shares" | "comments";
 
+  const togglePageStatFilter = (key: PageStatsSeriesKey) => {
+    setPageStatsFilter(prev =>
+      prev.includes(key)
+        ? prev.length > 1 ? prev.filter(k => k !== key) : prev  // keep at least one active
+        : [...prev, key]
+    );
+  };
+
   const pageStatsData: PageStatsPoint[] = [
     { month: "Jan", followers: 15000, likes: 8000, views: 12000, shares: 3000, comments: 5000 },
     { month: "Feb", followers: 20000, likes: 12000, views: 18000, shares: 5200, comments: 13000 },
@@ -193,6 +210,8 @@ export default function AnalyticsPage() {
     { key: "shares", color: "#7565b8" },
     { key: "comments", color: "#c46080" },
   ];
+
+  const activePageStatsSeries = pageStatsSeries.filter(s => pageStatsFilter.includes(s.key));
 
   const pageStatsPeaks = pageStatsSeries.map((series) => {
     const peakPoint = pageStatsData.reduce((maxPoint, point) =>
@@ -537,8 +556,49 @@ export default function AnalyticsPage() {
                 <h3 className="font-bold text-sm sm:text-base lg:text-lg text-gray-900">Page Stats</h3>
                 <p className="text-[10px] sm:text-[11px] text-gray-500">February 11 - February 24, 2026</p>
               </div>
-              {/* Component options dropdown */}
-              <div className="relative shrink-0" data-dropdown>
+              {/* Page Stats controls: filter + options dropdown */}
+              <div className="flex items-center gap-0.5">
+                {/* Stat filter button */}
+                <div className="relative shrink-0" ref={pageStatsFilterRef}>
+                  <button
+                    onClick={() => setPageStatsFilterOpen(o => !o)}
+                    className={`transition-colors cursor-pointer p-1 rounded-lg hover:bg-gray-100 ${
+                      pageStatsFilter.length < pageStatsSeries.length
+                        ? 'text-primary'
+                        : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                    aria-label="Filter stats"
+                    title="Filter stats"
+                  >
+                    <SlidersHorizontal size={14} />
+                  </button>
+                  {pageStatsFilterOpen && (
+                    <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1.5 overflow-hidden">
+                      <p className="px-3 pt-1 pb-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Show stats</p>
+                      {pageStatsSeries.map(({ key, color }) => (
+                        <button
+                          key={key}
+                          onClick={() => togglePageStatFilter(key)}
+                          className="w-full flex items-center gap-2.5 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                        >
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                          <span className="flex-1 text-left capitalize text-xs">{key}</span>
+                          <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                            pageStatsFilter.includes(key)
+                              ? 'border-blue-500 bg-blue-500'
+                              : 'border-gray-300'
+                          }`}>
+                            {pageStatsFilter.includes(key) && (
+                              <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            )}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {/* Component options dropdown */}
+                <div className="relative shrink-0" data-dropdown>
                 <button
                   onClick={() => setOpenDropdown(openDropdown === "pageStats" ? null : "pageStats")}
                   className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer p-1 rounded-lg hover:bg-gray-100"
@@ -562,14 +622,24 @@ export default function AnalyticsPage() {
                     </button>
                   </div>
                 )}
+                </div>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 text-[10px] sm:text-xs font-medium text-gray-600">
-              <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full" style={{backgroundColor:'#4e9a6e'}}></span> Follower</div>
-              <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full" style={{backgroundColor:'#c4882a'}}></span> Like</div>
-              <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full" style={{backgroundColor:'#5278c0'}}></span> Views</div>
-              <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full" style={{backgroundColor:'#7565b8'}}></span> Shares</div>
-              <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full" style={{backgroundColor:'#c46080'}}></span> Comments</div>
+            <div className="flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 text-[10px] sm:text-xs font-medium">
+              {pageStatsSeries.map(({ key, color }) => {
+                const labels: Record<PageStatsSeriesKey, string> = { followers: 'Follower', likes: 'Like', views: 'Views', shares: 'Shares', comments: 'Comments' };
+                const active = pageStatsFilter.includes(key);
+                return (
+                  <button
+                    key={key}
+                    onClick={() => togglePageStatFilter(key)}
+                    className={`flex items-center gap-1 transition-opacity cursor-pointer ${ active ? 'text-gray-600 opacity-100' : 'text-gray-400 opacity-40' }`}
+                  >
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full" style={{ backgroundColor: color }} />
+                    {labels[key]}
+                  </button>
+                );
+              })}
             </div>
           </div>
           <div className="w-full h-45 sm:h-55 lg:h-62.5 min-w-0">
@@ -580,7 +650,7 @@ export default function AnalyticsPage() {
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#9ca3af' }} width={35} tickFormatter={(value: number) => value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value.toString()} />
                 <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} formatter={(value: number | undefined) => [value !== undefined ? value.toLocaleString() : '', '']} />
                 {/* Peak highlight bars and badges generated from the current data points */}
-                {pageStatsPeaks.map((peak, index) => (
+                {pageStatsPeaks.filter(p => pageStatsFilter.includes(p.key)).map((peak, index) => (
                   <ReferenceLine
                     key={`peak-line-${peak.key}`}
                     x={peak.month}
@@ -590,7 +660,7 @@ export default function AnalyticsPage() {
                     ifOverflow="extendDomain"
                   />
                 ))}
-                {pageStatsPeaks.map((peak) => {
+                {pageStatsPeaks.filter(p => pageStatsFilter.includes(p.key)).map((peak) => {
                   const sameMonthPeaks = pageStatsPeaks.filter((item) => item.month === peak.month);
                   const monthIndex = sameMonthPeaks.findIndex((item) => item.key === peak.key);
                   const xOffset = (monthIndex - (sameMonthPeaks.length - 1) / 2) * 14;
@@ -606,11 +676,9 @@ export default function AnalyticsPage() {
                     />
                   );
                 })}
-                <Line type="monotone" dataKey="followers" stroke="#4e9a6e" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#4e9a6e' }} />
-                <Line type="monotone" dataKey="likes" stroke="#c4882a" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#c4882a' }} />
-                <Line type="monotone" dataKey="views" stroke="#5278c0" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#5278c0' }} />
-                <Line type="monotone" dataKey="shares" stroke="#7565b8" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#7565b8' }} />
-                <Line type="monotone" dataKey="comments" stroke="#c46080" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#c46080' }} />
+                {activePageStatsSeries.map(({ key, color }) => (
+                  <Line key={key} type="monotone" dataKey={key} stroke={color} strokeWidth={2} dot={false} activeDot={{ r: 4, fill: color }} />
+                ))}
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -869,7 +937,12 @@ export default function AnalyticsPage() {
               </div>
               <div className="flex flex-col divide-y divide-gray-50">
                 {topPosts.map((post) => (
-                  <div key={post.id} className="py-3 sm:py-4 space-y-2">
+                  // BACKEND NOTE: Replace href with `/posts/${post.id}` once post detail routes exist
+                  <div
+                    key={post.id}
+                    onClick={() => router.push("/posts")}
+                    className="py-3 sm:py-4 space-y-2 cursor-pointer hover:bg-gray-50 -mx-3 sm:-mx-4 lg:-mx-6 px-3 sm:px-4 lg:px-6 rounded-lg transition-colors"
+                  >
                     <div className="flex items-start gap-2 sm:gap-3 min-w-0">
                       <div className="w-10 h-7 sm:w-12 sm:h-8 relative rounded-md overflow-hidden shrink-0 bg-gray-200">
                         <Image src="/greece.png" alt="Thumbnail" fill sizes="48px" className="object-cover" />
@@ -966,7 +1039,8 @@ export default function AnalyticsPage() {
             {/* Mobile Card View (visible below lg) */}
             <div className="block lg:hidden divide-y divide-gray-50">
               {specificPagePosts.map((post) => (
-                <div key={post.id} className="p-3 sm:p-4 space-y-2 sm:space-y-3 overflow-hidden">
+                // BACKEND NOTE: Replace with `/posts/${post.id}` once post detail routes exist
+                <div key={post.id} onClick={() => router.push("/posts")} className="p-3 sm:p-4 space-y-2 sm:space-y-3 overflow-hidden cursor-pointer hover:bg-gray-50 transition-colors">
                   <div className="flex items-start gap-2 sm:gap-3 min-w-0">
                     <div className="w-10 h-7 sm:w-12 sm:h-8 relative rounded overflow-hidden bg-gray-200 shrink-0">
                       <Image src="/greece.png" alt="Thumbnail" fill sizes="48px" className="object-cover" />
@@ -1029,7 +1103,8 @@ export default function AnalyticsPage() {
                 <tbody className="divide-y divide-gray-50">
                   {/* BACKEND NOTE: Map through filtered posts here */}
                   {specificPagePosts.map((post) => (
-                    <tr key={post.id} className="hover:bg-gray-50/50 transition-colors">
+                    // BACKEND NOTE: Replace with `/posts/${post.id}` once post detail routes exist
+                    <tr key={post.id} onClick={() => router.push("/posts")} className="hover:bg-gray-50/50 transition-colors cursor-pointer">
                       <td className="py-4 px-6">
                         <div className="w-12 h-8 relative rounded overflow-hidden bg-gray-200">
                           <Image src="/greece.png" alt="Thumbnail" fill sizes="48px" className="object-cover" />
