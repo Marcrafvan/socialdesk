@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { 
   FileText, 
@@ -47,6 +48,7 @@ export default function AnalyticsPage() {
   const [selectedPlatform, setSelectedPlatform] = useState("All Platforms");
   const [activeTab, setActiveTab] = useState("All");
   const [exportOpen, setExportOpen] = useState(false);
+  const router = useRouter();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [saveModal, setSaveModal] = useState<null | "csv" | "pdf" | "chart">(null);
   const [saveModalDateRange, setSaveModalDateRange] = useState({ from: "", to: "" });
@@ -935,7 +937,12 @@ export default function AnalyticsPage() {
               </div>
               <div className="flex flex-col divide-y divide-gray-50">
                 {topPosts.map((post) => (
-                  <div key={post.id} className="py-3 sm:py-4 space-y-2">
+                  // BACKEND NOTE: Replace href with `/posts/${post.id}` once post detail routes exist
+                  <div
+                    key={post.id}
+                    onClick={() => router.push("/posts")}
+                    className="py-3 sm:py-4 space-y-2 cursor-pointer hover:bg-gray-50 -mx-3 sm:-mx-4 lg:-mx-6 px-3 sm:px-4 lg:px-6 rounded-lg transition-colors"
+                  >
                     <div className="flex items-start gap-2 sm:gap-3 min-w-0">
                       <div className="w-10 h-7 sm:w-12 sm:h-8 relative rounded-md overflow-hidden shrink-0 bg-gray-200">
                         <Image src="/greece.png" alt="Thumbnail" fill sizes="48px" className="object-cover" />
@@ -1032,7 +1039,8 @@ export default function AnalyticsPage() {
             {/* Mobile Card View (visible below lg) */}
             <div className="block lg:hidden divide-y divide-gray-50">
               {specificPagePosts.map((post) => (
-                <div key={post.id} className="p-3 sm:p-4 space-y-2 sm:space-y-3 overflow-hidden">
+                // BACKEND NOTE: Replace with `/posts/${post.id}` once post detail routes exist
+                <div key={post.id} onClick={() => router.push("/posts")} className="p-3 sm:p-4 space-y-2 sm:space-y-3 overflow-hidden cursor-pointer hover:bg-gray-50 transition-colors">
                   <div className="flex items-start gap-2 sm:gap-3 min-w-0">
                     <div className="w-10 h-7 sm:w-12 sm:h-8 relative rounded overflow-hidden bg-gray-200 shrink-0">
                       <Image src="/greece.png" alt="Thumbnail" fill sizes="48px" className="object-cover" />
@@ -1095,7 +1103,8 @@ export default function AnalyticsPage() {
                 <tbody className="divide-y divide-gray-50">
                   {/* BACKEND NOTE: Map through filtered posts here */}
                   {specificPagePosts.map((post) => (
-                    <tr key={post.id} className="hover:bg-gray-50/50 transition-colors">
+                    // BACKEND NOTE: Replace with `/posts/${post.id}` once post detail routes exist
+                    <tr key={post.id} onClick={() => router.push("/posts")} className="hover:bg-gray-50/50 transition-colors cursor-pointer">
                       <td className="py-4 px-6">
                         <div className="w-12 h-8 relative rounded overflow-hidden bg-gray-200">
                           <Image src="/greece.png" alt="Thumbnail" fill sizes="48px" className="object-cover" />
