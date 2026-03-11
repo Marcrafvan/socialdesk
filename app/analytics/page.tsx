@@ -585,7 +585,7 @@ export default function AnalyticsPage() {
                           <span className="flex-1 text-left capitalize text-xs">{key}</span>
                           <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
                             pageStatsFilter.includes(key)
-                              ? 'border-gray-800 bg-gray-800'
+                              ? 'border-blue-500 bg-blue-500'
                               : 'border-gray-300'
                           }`}>
                             {pageStatsFilter.includes(key) && (
