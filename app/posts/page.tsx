@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import {
   Facebook,
@@ -30,7 +31,9 @@ import {
   Filter,
   ChevronDown,
   Youtube,
-  Linkedin
+  Linkedin,
+  Search,
+  CalendarRange
 } from "lucide-react";
 
 // 1. Updated Post Type to support Media type
@@ -40,6 +43,7 @@ type Post = {
   status: "published" | "scheduled" | "failed";
   platforms: string[];
   date: string;
+  page: string;
   mediaType?: "image" | "video" | "none";
   mediaUrl?: string;
   stats?: {
@@ -55,55 +59,78 @@ type EditingPost = Post | null;
 
 type FilterStatus = "all" | "published" | "scheduled";
 type FilterPlatform = "all" | "facebook" | "instagram" | "tiktok" | "x" | "youtube" | "pinterest";
+type ViewMode = "table" | "card";
 
 export default function PostsPage() {
   // 2. Mock Data with Images and Videos
   const [posts, setPosts] = useState<Post[]>([
     {
       id: "1",
-      content: "Excited to launch our new product! 🚀 #LaunchDay",
+      content: "Exited to launch our new product! 🚀 #LaunchDay",
       status: "published",
       platforms: ["facebook", "instagram"],
-      date: "Feb 8, 2026, 10:20 AM",
+      date: "02/28/2026",
+      page: "eGetinnz",
       mediaType: "image",
       mediaUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80",
-      stats: { likes: 213, comments: 143, shares: 67 }
+      stats: { likes: 144, comments: 58, shares: 278 }
     },
     {
       id: "2",
       content: "Behind the scenes at our annual team retreat. Check out the vibes! 🌴",
       status: "scheduled",
-      platforms: ["tiktok"],
-      date: "Feb 14, 2026, 5:00 PM",
+      platforms: ["facebook"],
+      date: "02/28/2026",
+      page: "eGetinnz",
       mediaType: "video",
       mediaUrl: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&q=80",
-      stats: { likes: 111, comments: 231, shares: 56 }
+      stats: { likes: 144, comments: 58, shares: 278 }
     },
     {
       id: "3",
       content: "Just a quick text update about our holiday hours.",
       status: "published",
-      platforms: ["x"],
-      date: "Feb 10, 2026, 9:00 AM",
+      platforms: ["instagram"],
+      date: "02/28/2026",
+      page: "eGetinnz",
       mediaType: "none",
-      stats: { likes: 285, comments: 345, shares: 56 }
+      stats: { likes: 144, comments: 58, shares: 278 }
     },
     {
       id: "4",
       content: "Summer sale starts next week! Get ready for amazing discounts on all products ☀️ #SummerSale",
-      status: "scheduled",
-      platforms: ["facebook", "instagram", "tiktok"],
-      date: "Feb 20, 2026, 12:00 PM",
+      status: "published",
+      platforms: ["tiktok"],
+      date: "02/28/2026",
+      page: "eGetinnz",
       mediaType: "image",
       mediaUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80",
-      stats: { likes: 64, comments: 123, shares: 23 }
+      stats: { likes: 144, comments: 58, shares: 278 }
+    },
+    {
+      id: "5",
+      content: "Excited to launch our new product! 🚀 #LaunchDay",
+      status: "published",
+      platforms: ["instagram"],
+      date: "02/28/2026",
+      page: "eGetinnz",
+      mediaType: "image",
+      mediaUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80",
+      stats: { likes: 144, comments: 58, shares: 278 }
     }
   ]);
+
+  // Date filter states
+  const [dateFilterOpen, setDateFilterOpen] = useState(false);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [platformFilter, setPlatformFilter] = useState<FilterPlatform>("all");
   const [isPlatformDropdownOpen, setIsPlatformDropdownOpen] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<FilterPlatform | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -133,7 +160,31 @@ export default function PostsPage() {
     setEditingPost(null);
   };
 
-  // Filter posts based on status and platform
+  const handlePlatformSelect = (platform: FilterPlatform) => {
+    setSelectedPlatform(platform === selectedPlatform ? null : platform);
+    setPlatformFilter(platform);
+    setViewMode(platform === "all" ? "table" : "card");
+    setIsPlatformDropdownOpen(false);
+  };
+
+  const applyDateFilter = () => {
+    setDateFilterOpen(false);
+    // Date filtering logic will be applied automatically through filteredPosts
+  };
+
+  const clearDateFilter = () => {
+    setFromDate("");
+    setToDate("");
+    setDateFilterOpen(false);
+  };
+
+  // Helper function to parse date string (MM/DD/YYYY) to Date object
+  const parseDate = (dateStr: string): Date => {
+    const [month, day, year] = dateStr.split('/').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
+  // Filter posts based on status, platform, and date range
   const filteredPosts = posts.filter(post => {
     // Status filter
     if (statusFilter !== "all" && post.status !== statusFilter) {
@@ -144,6 +195,22 @@ export default function PostsPage() {
     if (platformFilter !== "all" && !post.platforms.includes(platformFilter)) {
       return false;
     }
+
+    // Date range filter
+    if (fromDate || toDate) {
+      const postDate = parseDate(post.date);
+      
+      if (fromDate) {
+        const from = new Date(fromDate);
+        if (postDate < from) return false;
+      }
+      
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(23, 59, 59, 999); // End of the day
+        if (postDate > to) return false;
+      }
+    }
     
     return true;
   });
@@ -153,251 +220,536 @@ export default function PostsPage() {
   const scheduledCount = posts.filter(p => p.status === "scheduled").length;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      {/* Header with Title and Platform Filter + Calendar */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-primary">Posts</h1>
-          <p className="text-muted">View and manage your posts</p>
-        </div>
-        
-        {/* Platform Filter and Calendar - Now on the same line as title */}
-        <div className="flex items-center gap-2">
-          {/* Platform Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setIsPlatformDropdownOpen(!isPlatformDropdownOpen)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <Filter size={16} className="text-gray-500" />
-              <span className="text-sm font-medium">
-                {platformFilter === "all" ? "All platform" : platformFilter.charAt(0).toUpperCase() + platformFilter.slice(1)}
-              </span>
-              <ChevronDown size={16} className="text-gray-400" />
-            </button>
-            
-            {isPlatformDropdownOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setIsPlatformDropdownOpen(false)}
-                />
-                <div className="absolute top-full right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
-                  {["all", "facebook", "instagram", "tiktok", "x", "youtube", "pinterest"].map((platform) => (
-                    <button
-                      key={platform}
-                      onClick={() => {
-                        setPlatformFilter(platform as FilterPlatform);
-                        setIsPlatformDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 ${
-                        platformFilter === platform ? "bg-blue-50 text-blue-600" : "text-gray-700"
-                      }`}
-                    >
-                      {platform !== "all" && <PlatformIcon platform={platform} />}
-                      <span className="capitalize">{platform}</span>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+    <div className="w-full space-y-6 p-6">
+      {/* Header with Sort by Date - Only show in table view */}
+      {viewMode === "table" && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-semibold text-gray-900">Post</h1>
+            <p className="text-sm text-gray-500">VIEW AND MANAGE YOUR POST</p>
           </div>
-
-          {/* Calendar Button */}
-          <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-            <Calendar size={18} className="text-gray-500" />
-          </button>
-        </div>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="space-y-4">
-        {/* Status Filters */}
-        <div>
-          <div className="flex items-center gap-4 border-b border-gray-200">
-            <button
-              onClick={() => setStatusFilter("all")}
-              className={`pb-3 px-1 font-medium text-sm transition-colors relative ${
-                statusFilter === "all"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setStatusFilter("scheduled")}
-              className={`pb-3 px-1 font-medium text-sm transition-colors relative ${
-                statusFilter === "scheduled"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Scheduled
-            </button>
-            <button
-              onClick={() => setStatusFilter("published")}
-              className={`pb-3 px-1 font-medium text-sm transition-colors relative ${
-                statusFilter === "published"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Published
-            </button>
-          </div>
-          {/* Published count moved below */}
-          <div className="mt-2 text-sm text-gray-500">
-            {publishedCount} Published
-          </div>
-        </div>
-
-        {/* Sort and New Post */}
-        <div className="flex items-center justify-end">
+          
           <div className="flex items-center gap-3">
-            <select className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white">
-              <option>Sort by Newest</option>
-              <option>Sort by Oldest</option>
-              <option>Sort by Most Engaged</option>
+            {/* Sort by Post dropdown */}
+            <select className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white min-w-[140px]">
+              <option>Sort by Post</option>
             </select>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-              + New Post
-            </button>
+
+            {/* Sort by Date button with calendar popup */}
+            <div className="relative">
+              <button
+                onClick={() => setDateFilterOpen(!dateFilterOpen)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                <Calendar size={16} />
+                Sort by Date
+              </button>
+
+              {/* Date Filter Popup */}
+              {dateFilterOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setDateFilterOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-20 p-4">
+                    <h3 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
+                      <CalendarRange size={18} className="text-blue-600" />
+                      Filter by Date Range
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          From:
+                        </label>
+                        <input
+                          type="date"
+                          value={fromDate}
+                          onChange={(e) => setFromDate(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          To:
+                        </label>
+                        <input
+                          type="date"
+                          value={toDate}
+                          onChange={(e) => setToDate(e.target.value)}
+                          min={fromDate}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                        <button
+                          onClick={clearDateFilter}
+                          className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        >
+                          Clear
+                        </button>
+                        <button
+                          onClick={applyDateFilter}
+                          className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          Apply Filter
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Active filters indicator */}
+                    {(fromDate || toDate) && (
+                      <div className="mt-3 p-2 bg-blue-50 rounded-lg">
+                        <p className="text-xs text-blue-700 font-medium mb-1">Active filters:</p>
+                        <div className="space-y-1">
+                          {fromDate && (
+                            <p className="text-xs text-blue-600">
+                              From: {new Date(fromDate).toLocaleDateString()}
+                            </p>
+                          )}
+                          {toDate && (
+                            <p className="text-xs text-blue-600">
+                              To: {new Date(toDate).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
+      )}
+
+      {/* Header for Card View - Post title and filters in same line */}
+      {viewMode === "card" && (
+  <div className="relative">
+    {/* Post title on the left */}
+    <div className="absolute left-0 top-0">
+      <h2 className="text-4xl font-semibold text-gray-900">Post</h2>
+      <p className="text-sm text-gray-500">VIEW AND MANAGE YOUR POST</p>
+    </div>
+    
+    {/* Centered filters */}
+    <div className="flex items-center justify-center gap-4 pt-2">
+      {/* Status Tabs as inline buttons */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setStatusFilter("all")}
+          className={`px-3 py-1.5 font-medium text-sm rounded-lg transition-colors ${
+            statusFilter === "all"
+              ? "bg-blue-600 text-white"
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
+        >
+          All ({posts.length})
+        </button>
+        <button
+          onClick={() => setStatusFilter("scheduled")}
+          className={`px-3 py-1.5 font-medium text-sm rounded-lg transition-colors ${
+            statusFilter === "scheduled"
+              ? "bg-blue-600 text-white"
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
+        >
+          Scheduled ({scheduledCount})
+        </button>
+        <button
+          onClick={() => setStatusFilter("published")}
+          className={`px-3 py-1.5 font-medium text-sm rounded-lg transition-colors ${
+            statusFilter === "published"
+              ? "bg-blue-600 text-white"
+              : "text-gray-600 hover:bg-gray-100"
+          }`}
+        >
+          Published ({publishedCount})
+        </button>
       </div>
 
-      {/* Posts List */}
-      <div className="space-y-6">
-        {filteredPosts.map((post) => (
-          <div key={post.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
-            
-            {/* Header: Status & Actions */}
-            <div className="flex justify-between items-start mb-4">
-              <StatusBadge status={post.status} />
-              
-              {/* 3 Dots Menu */}
-              <div className="relative">
-                <button
-                  onClick={() => setOpenDropdownId(openDropdownId === post.id ? null : post.id)}
-                  className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <MoreHorizontal size={18} />
-                </button>
-                
-                {openDropdownId === post.id && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setOpenDropdownId(null)}
-                    />
-                    <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
-                      <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                        <Eye size={14} /> View
-                      </button>
-                      {post.status === 'scheduled' && (
-                        <button
-                          onClick={() => openEditModal(post, "edit")}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                        >
-                          <Edit3 size={14} /> Edit
-                        </button>
-                      )}
-                      {post.status === 'published' && (
-                        <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                          <Eye size={14} /> Unpublish
-                        </button>
-                      )}
-                      <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                        <Copy size={14} /> Copy Link
-                      </button>
-                      <button
-                        onClick={() => deletePost(post.id)}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                      >
-                        <Trash2 size={14} /> Delete
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+      {/* Sort by Date button with calendar popup */}
+      <div className="relative">
+        <button
+          onClick={() => setDateFilterOpen(!dateFilterOpen)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
+        >
+          <Calendar size={16} />
+          Sort by Date
+        </button>
 
-            {/* Layout: Content + Media Side-by-Side */}
-            <div className="flex flex-col md:flex-row gap-6">
+        {/* Date Filter Popup */}
+        {dateFilterOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setDateFilterOpen(false)}
+            />
+            <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-20 p-4">
+              <h3 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
+                <CalendarRange size={18} className="text-blue-600" />
+                Filter by Date Range
+              </h3>
               
-              {/* Media Preview Section */}
-              {post.mediaType !== 'none' && post.mediaUrl && (
-                <div className="w-full md:w-48 h-32 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden relative border border-gray-200">
-                  <img
-                    src={post.mediaUrl}
-                    alt="Post media"
-                    className="w-full h-full object-cover"
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    From:
+                  </label>
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
                   />
-                  
-                  {post.mediaType === 'video' && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/20 transition-all">
-                      <PlayCircle className="text-white w-10 h-10 opacity-90" />
-                    </div>
-                  )}
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    To:
+                  </label>
+                  <input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    min={fromDate}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                  />
+                </div>
 
-                  <div className="absolute top-2 right-2 bg-black/50 p-1 rounded text-white backdrop-blur-sm">
-                    {post.mediaType === 'video' ? <Video size={12} /> : <ImageIcon size={12} />}
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                  <button
+                    onClick={clearDateFilter}
+                    className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={applyDateFilter}
+                    className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Apply Filter
+                  </button>
+                </div>
+              </div>
+
+              {/* Active filters indicator */}
+              {(fromDate || toDate) && (
+                <div className="mt-3 p-2 bg-blue-50 rounded-lg">
+                  <p className="text-xs text-blue-700 font-medium mb-1">Active filters:</p>
+                  <div className="space-y-1">
+                    {fromDate && (
+                      <p className="text-xs text-blue-600">
+                        From: {new Date(fromDate).toLocaleDateString()}
+                      </p>
+                    )}
+                    {toDate && (
+                      <p className="text-xs text-blue-600">
+                        To: {new Date(toDate).toLocaleDateString()}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  </div>
+)}
 
-              {/* Text Content Section */}
-              <div className="flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="text-gray-800 text-lg font-medium leading-relaxed mb-2">
-                    {post.content}
-                  </h3>
+
+      {/* Table View */}
+{viewMode === "table" && (
+  <>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <table className="w-full">
+        <thead className="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th className="text-left px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">DATE</th>
+            <th className="text-left px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">PLATFORM</th>
+            <th className="text-left px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">PAGE</th>
+            <th className="text-left px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">POST</th>
+            <th className="text-left px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">ENGAGEMENT</th>
+            <th className="text-left px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">STATUS</th>
+            <th className="text-left px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider">ACTION</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-200">
+          {filteredPosts.map((post) => (
+            <tr key={post.id} className="hover:bg-gray-50 transition-colors">
+              <td className="px-6 py-4">
+                <span className="text-sm text-gray-500">{post.date}</span>
+              </td>
+              <td className="px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <PlatformIcon platform={post.platforms[0]} />
+                  <span className="text-sm font-medium text-gray-700 capitalize">
+                    {post.platforms[0]}
+                  </span>
+                  
                 </div>
-
-                {/* Footer: Platforms, Date, and Stats */}
-                <div className="space-y-3">
-                  {/* Platforms and Date */}
-                  <div className="flex items-center gap-4">
-                    <div className="flex -space-x-2">
-                      {post.platforms.map(p => (
-                        <div key={p} className="w-8 h-8 rounded-full bg-white border border-gray-100 flex items-center justify-center shadow-sm relative z-10">
-                          <PlatformIcon platform={p} />
-                        </div>
-                      ))}
-                    </div>
-                    <span className="text-xs text-muted font-medium flex items-center gap-1.5">
-                      {post.status === 'scheduled' ? <Calendar size={14} /> : <Clock size={14} />}
-                      {post.date}
-                    </span>
-                  </div>
-
-                  {/* Engagement Stats */}
-                  {post.stats && (
-                    <div className="flex items-center gap-6">
-                      <div className="flex items-center gap-1.5 text-gray-500">
-                        <Heart size={16} className="text-red-400" />
-                        <span className="text-sm font-medium">{post.stats.likes}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-gray-500">
-                        <MessageCircle size={16} className="text-blue-400" />
-                        <span className="text-sm font-medium">{post.stats.comments}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-gray-500">
-                        <Repeat2 size={16} className="text-green-400" />
-                        <span className="text-sm font-medium">{post.stats.shares}</span>
-                      </div>
-                      <button className="ml-auto text-gray-400 hover:text-gray-600">
-                        <BarChart2 size={18} />
-                      </button>
+              </td>
+              <td className="px-6 py-4">
+                <span className="text-sm font-medium text-gray-900">{post.page}</span>
+              </td>
+              <td className="px-6 py-4">
+                <div className="flex items-center gap-3">
+                  {post.mediaType !== 'none' && post.mediaUrl && (
+                    <div className="w-10 h-10 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                      <img
+                        src={post.mediaUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   )}
+                  <span className="text-sm text-gray-700 line-clamp-2">{post.content}</span>
                 </div>
+              </td>
+              <td className="px-6 py-4">
+                {post.stats && (
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1 text-sm">
+                      <Heart size={14} className="text-red-400" /> {post.stats.likes}
+                    </span>
+                    <span className="flex items-center gap-1 text-sm">
+                      <MessageCircle size={14} className="text-blue-400" /> {post.stats.comments}
+                    </span>
+                    <span className="flex items-center gap-1 text-sm">
+                      <Repeat2 size={14} className="text-green-400" /> {post.stats.shares}
+                    </span>
+                  </div>
+                )}
+              </td>
+              <td className="px-6 py-4">
+                <StatusBadge status={post.status} />
+              </td>
+              <td className="px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openEditModal(post, "edit")}
+                    className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Edit"
+                  >
+                    <Edit3 size={18} />
+                  </button>
+                  <button
+                    onClick={() => deletePost(post.id)}
+                    className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    {/* Select Platform Section - Only shown in table view */}
+    <div className="mt-8">
+      <h3 className="text-sm font-medium text-gray-700 mb-4">Select Platform</h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[
+          { name: "Facebook", icon: <Facebook size={24} className="text-blue-600" />, key: "facebook" },
+          { name: "Instagram", icon: <Instagram size={24} className="text-pink-600" />, key: "instagram" },
+          { name: "Youtube", icon: <Youtube size={24} className="text-red-600" />, key: "youtube" },
+          { name: "TikTok", icon: <Video size={24} className="text-black" />, key: "tiktok" },
+          { name: "Pinterest", icon: <ImageIcon size={24} className="text-red-500" />, key: "pinterest" },
+          { name: "X (Twitter)", icon: <XIcon className="w-6 h-6" />, key: "x" }
+        ].map((platform) => (
+          <button
+            key={platform.key}
+            onClick={() => handlePlatformSelect(platform.key as FilterPlatform)}
+            className={`flex items-center gap-4 p-6 rounded-xl border-2 transition-all ${
+              selectedPlatform === platform.key
+                ? "border-blue-500 bg-blue-50 text-blue-700 shadow-md"
+                : "border-gray-200 hover:border-gray-300 hover:shadow-md text-gray-700"
+            }`}
+          >
+            <div className="flex-shrink-0">
+              {platform.icon}
+            </div>
+            <span className="text-lg font-semibold">{platform.name}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  </>
+)}
+
+     {/* Card View (when platform selected) */}
+{viewMode === "card" && selectedPlatform && (
+  <div className="space-y-6">
+    <div className="flex items-center justify-between">
+      <h3 className="text-lg font-semibold text-gray-900 capitalize">
+        {selectedPlatform} Posts
+      </h3>
+      <button
+        onClick={() => {
+          setViewMode("table");
+          setPlatformFilter("all");
+          setSelectedPlatform(null);
+        }}
+        className="flex items-center gap-2 px-3 py-2 text-sm text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors font-medium"
+      >
+        <ArrowLeft size={18} className="text-white" />
+        <span>Back to Table</span>
+      </button>
+    </div>
+    
+    {filteredPosts.map((post) => (
+      <div key={post.id} className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all relative overflow-hidden">
+        {/* Main container */}
+        <div className="p-6">
+          {/* Light Grey Background for Date Line */}
+          <div className="absolute left-0 right-0 top-0 h-[52px] bg-gray-200 rounded-t-xl" />
+          
+          {/* 3 Dots Menu - Positioned in top right */}
+          <div className="absolute top-4 right-4 z-20">
+            <div className="relative">
+              <button
+                onClick={() => setOpenDropdownId(openDropdownId === post.id ? null : post.id)}
+                className="text-gray-600 hover:text-black p-2 hover:bg-gray-300 rounded-full transition-colors"
+              >
+                <MoreHorizontal size={18} />
+              </button>
+              
+              {openDropdownId === post.id && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setOpenDropdownId(null)}
+                  />
+                  <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
+                    {post.status === 'scheduled' && (
+                      <button
+                        onClick={() => openEditModal(post, "edit")}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <Edit3 size={14} /> Edit
+                      </button>
+                    )}
+                    {post.status === 'published' && (
+                      <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                        <Eye size={14} /> Unpublish
+                      </button>
+                    )}
+                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                      <Copy size={14} /> Copy Link
+                    </button>
+                    <button
+                      onClick={() => deletePost(post.id)}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                    >
+                      <Trash2 size={14} /> Delete
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Layout: Content + Media Side-by-Side */}
+          <div className="flex flex-col md:flex-row gap-6 relative z-10">
+            {/* Media Preview Section */}
+            {post.mediaType !== 'none' && post.mediaUrl && (
+              <div className="w-full md:w-48 h-32 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden relative border border-gray-200">
+                <img
+                  src={post.mediaUrl}
+                  alt="Post media"
+                  className="w-full h-full object-cover"
+                />
+                
+                {post.mediaType === 'video' && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/20 transition-all">
+                    <PlayCircle className="text-white w-10 h-10 opacity-90" />
+                  </div>
+                )}
+
+                <div className="absolute top-2 right-2 bg-black/50 p-1 rounded text-white backdrop-blur-sm">
+                  {post.mediaType === 'video' ? <Video size={12} /> : <ImageIcon size={12} />}
+                </div>
+              </div>
+            )}
+
+            {/* Text Content Section */}
+            <div className="flex-1">
+              {/* Date and Page Name with pipe separator */}
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center gap-1.5 text-sm">
+                  <Calendar size={14} className="text-gray-600" />
+                  <span className="text-gray-700">{post.date}</span>
+                </div>
+                <span className="text-gray-400 text-sm">|</span>
+                <span className="text-sm font-medium text-gray-900">{post.page}</span>
+              </div>
+
+              {/* Description */}
+              <p className="text-gray-800 text-base leading-relaxed mb-4">
+                {post.content}
+              </p>
+
+              {/* Platform and Engagement Stats */}
+              <div className="flex items-center gap-6">
+                {/* Platform Icon and Name */}
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-gray-50 flex items-center justify-center">
+                    <PlatformIcon platform={post.platforms[0]} />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 capitalize">
+                    {post.platforms[0]}
+                  </span>
+                  
+                </div>
+
+                {/* Engagement Stats */}
+                {post.stats && (
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5 text-gray-500">
+                      <Heart size={16} className="text-red-400" />
+                      <span className="text-sm">{post.stats.likes}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-gray-500">
+                      <MessageCircle size={16} className="text-blue-400" />
+                      <span className="text-sm">{post.stats.comments}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-gray-500">
+                      <Repeat2 size={16} className="text-green-400" />
+                      <span className="text-sm">{post.stats.shares}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        ))}
+        </div>
+
+        {/* Status Badge - Positioned at bottom right of the card */}
+        <div className="absolute bottom-4 right-4 z-20">
+          {post.status === 'published' ? (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 rounded-full shadow-sm">
+              <CheckCircle2 size={14} className="text-green-600" />
+              <span className="text-xs font-semibold text-green-700">Published</span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-100 rounded-full shadow-sm">
+              <Clock size={14} className="text-yellow-600" />
+              <span className="text-xs font-semibold text-yellow-700">Scheduled</span>
+            </div>
+          )}
+        </div>
       </div>
+    ))}
+  </div>
+)}
 
       {/* Edit/Reschedule Modal */}
       {isModalOpen && editingPost && (
@@ -461,13 +813,10 @@ function EditModal({
     } else if (activeTab === "reschedule") {
       const dateObj = new Date(`${newDate} ${newTime}`);
       const formattedDate = dateObj.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      }).replace(',', ',');
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric'
+      }).replace(/\//g, '/');
 
       updatedPost = {
         ...updatedPost,
@@ -492,7 +841,7 @@ function EditModal({
         
         {/* Modal Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-primary">
+          <h2 className="text-xl font-bold text-gray-900">
             {activeTab === "edit" ? "Edit Post" : "Reschedule Post"}
           </h2>
           <button
@@ -647,7 +996,7 @@ function StatusBadge({ status }: { status: string }) {
   
   const styles: Record<StatusType, string> = {
     published: "bg-green-100 text-green-700 border-green-200",
-    scheduled: "bg-blue-100 text-blue-700 border-blue-200",
+    scheduled: "bg-yellow-100 text-yellow-700 border-blue-200",
     failed: "bg-red-100 text-red-700 border-red-200",
   };
 
@@ -678,16 +1027,16 @@ function PlatformIcon({ platform }: { platform: string }) {
     case 'facebook': return <Facebook size={14} className="text-blue-600" />;
     case 'instagram': return <Instagram size={14} className="text-pink-600" />;
     case 'tiktok': return <Video size={14} className="text-black" />;
-    case 'x': return <XIcon />;
+    case 'x': return <XIcon className="w-3.5 h-3.5" />;
     case 'youtube': return <Youtube size={14} className="text-red-600" />;
     case 'linkedin': return <Linkedin size={14} className="text-blue-700" />;
     default: return <Video size={14} />;
   }
 }
 
-function XIcon() {
+function XIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="w-3.5 h-3.5 fill-current text-black">
+    <svg viewBox="0 0 24 24" aria-hidden="true" className={`fill-current text-black ${className}`}>
       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
     </svg>
   );
