@@ -3,27 +3,25 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import {
-  Facebook,
-  Instagram,
-  Youtube,
-  Trash2,
-  Plus,
-  AlertCircle,
-} from "lucide-react";
+import { Facebook, Instagram, Youtube, Trash2, Plus } from "lucide-react";
 
 /* ------------------------- Types ------------------------- */
-type Account = {
+type Platform = {
   id: string;
   name: string;
-  username?: string;
-  connectedDate?: string;
-  isConnected: boolean;
-  color: string; // e.g. "text-blue-600 bg-blue-50"
+  color: string;
   icon: React.ReactNode;
 };
 
-/* ---------------------- Component ------------------------ */
+type Connected = {
+  id: string;
+  platformId: string;
+  username: string;
+  connectedDate: string;
+};
+
+const uid = (prefix = "") => `${prefix}${Math.random().toString(36).slice(2, 9)}`;
+
 export default function AccountsPage() {
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -37,32 +35,12 @@ export default function AccountsPage() {
     }
   }, [router]);
 
-  // Mock data (some connected, some available)
-  const [accounts, setAccounts] = useState<Account[]>([
-    {
-      id: "facebook",
-      name: "Facebook",
-      username: "@john_doe123",
-      connectedDate: "February 14, 2026",
-      isConnected: true,
-      color: "text-blue-600 bg-blue-50",
-      icon: <Facebook size={20} />,
-    },
-    {
-      id: "instagram",
-      name: "Instagram",
-      username: "@instagram_user_143",
-      connectedDate: "February 16, 2026",
-      isConnected: true,
-      color: "text-pink-600 bg-pink-50",
-      icon: <Instagram size={20} />,
-    },
+  const platforms: Platform[] = [
+    { id: "facebook", name: "Facebook", color: "text-blue-600 bg-blue-50", icon: <Facebook size={20} /> },
+    { id: "instagram", name: "Instagram", color: "text-pink-600 bg-pink-50", icon: <Instagram size={20} /> },
     {
       id: "x",
       name: "X",
-      username: "@twitter_user_0121",
-      connectedDate: "February 16, 2026",
-      isConnected: true,
       color: "text-gray-700 bg-gray-100",
       icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden>
@@ -70,258 +48,212 @@ export default function AccountsPage() {
         </svg>
       ),
     },
+    { id: "tiktok", name: "TikTok", color: "text-black bg-gray-100", icon: <TikTokIcon /> },
+    { id: "pinterest", name: "Pinterest", color: "text-red-600 bg-red-50", icon: <PinterestIcon /> },
+    { id: "youtube", name: "YouTube", color: "text-red-600 bg-red-50", icon: <Youtube size={20} /> },
+  ];
+
+  const [connectedAccounts, setConnectedAccounts] = useState<Connected[]>([
     {
-      id: "tiktok",
-      name: "TikTok",
-      username: undefined,
-      connectedDate: undefined,
-      isConnected: false,
-      color: "text-black bg-gray-100",
-      icon: <TikTokIcon />,
+      id: uid("conn_"),
+      platformId: "facebook",
+      username: "@john_doe123",
+      connectedDate: "February 14, 2026",
     },
     {
-      id: "pinterest",
-      name: "Pinterest",
-      username: undefined,
-      connectedDate: undefined,
-      isConnected: false,
-      color: "text-red-600 bg-red-50",
-      icon: <PinterestIcon />,
-    },
-    {
-      id: "youtube",
-      name: "YouTube",
-      username: undefined,
-      connectedDate: undefined,
-      isConnected: false,
-      color: "text-red-600 bg-red-50",
-      icon: <Youtube size={20} />,
+      id: uid("conn_"),
+      platformId: "instagram",
+      username: "@instagram_user_143",
+      connectedDate: "February 16, 2026",
     },
   ]);
 
-  const connectedAccounts = accounts.filter((a) => a.isConnected);
-  const availableAccounts = accounts.filter((a) => !a.isConnected);
-
-  // Modal state:
-  // - connectPlatformId: "selector" -> shows platform selector (optional)
-  // - otherwise platform id -> shows the login modal for that platform
-  const [connectPlatformId, setConnectPlatformId] = useState<string | null>(null);
+  // modal/form state
+  const [connectPlatformId, setConnectPlatformId] = useState<string | null>(null); // null | "selector" | platformId
   const [connectEmail, setConnectEmail] = useState("");
-  const [disconnectTarget, setDisconnectTarget] = useState<Account | null>(null);
-  const [disconnectConfirmChecked, setDisconnectConfirmChecked] = useState(false);
+  const [disconnectId, setDisconnectId] = useState<string | null>(null);
+  const [confirmChecked, setConfirmChecked] = useState(false);
 
-  // Helpers
+  const findPlatform = (id: string | undefined) => platforms.find((p) => p.id === id);
+
   const formatLongDate = (d = new Date()) =>
-    d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
   const openAddSelector = () => setConnectPlatformId("selector");
-
-  const openPlatformLogin = (id: string) => {
+  const openPlatformLogin = (platformId: string) => {
     setConnectEmail("");
-    setConnectPlatformId(id);
+    setConnectPlatformId(platformId);
   };
 
-  const handleLoginConnect = (e?: React.FormEvent) => {
+  const handleConnectSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!connectPlatformId || connectPlatformId === "selector") return;
 
-    // connect mock: set username from email or default
-    setAccounts((prev) =>
-      prev.map((acc) =>
-        acc.id === connectPlatformId
-          ? {
-              ...acc,
-              isConnected: true,
-              username: connectEmail ? `@${connectEmail.split("@")[0]}` : `@${acc.id}_official`,
-              connectedDate: formatLongDate(new Date()),
-            }
-          : acc
-      )
-    );
+    const platformId = connectPlatformId;
+    const username = connectEmail ? `@${connectEmail.split("@")[0]}` : `@${platformId}_user_${Math.floor(Math.random() * 1000)}`;
+
+    const newConn: Connected = {
+      id: uid("conn_"),
+      platformId,
+      username,
+      connectedDate: formatLongDate(new Date()),
+    };
+
+    setConnectedAccounts((prev) => [newConn, ...prev]);
     setConnectPlatformId(null);
     setConnectEmail("");
   };
 
-  const quickConnect = (id: string) => {
-    setAccounts((prev) =>
-      prev.map((acc) =>
-        acc.id === id
-          ? {
-              ...acc,
-              isConnected: true,
-              username: `@${id}_official`,
-              connectedDate: formatLongDate(new Date()),
-            }
-          : acc
-      )
-    );
+  const quickConnect = (platformId: string) => {
+    const newConn: Connected = {
+      id: uid("conn_"),
+      platformId,
+      username: `@${platformId}_official`,
+      connectedDate: formatLongDate(new Date()),
+    };
+    setConnectedAccounts((prev) => [newConn, ...prev]);
     setConnectPlatformId(null);
-    setConnectEmail("");
   };
 
-  // disconnect
-  const openDisconnect = (acc: Account) => {
-    setDisconnectTarget(acc);
-    setDisconnectConfirmChecked(false);
+  const openDisconnectModal = (connId: string) => {
+    setDisconnectId(connId);
+    setConfirmChecked(false);
   };
 
-  const confirmDisconnect = () => {
-    if (!disconnectTarget || !disconnectConfirmChecked) return;
-    setAccounts((prev) =>
-      prev.map((a) =>
-        a.id === disconnectTarget.id
-          ? { ...a, isConnected: false, username: undefined, connectedDate: undefined }
-          : a
-      )
-    );
-    setDisconnectTarget(null);
-    setDisconnectConfirmChecked(false);
+  const handleConfirmDisconnect = () => {
+    if (!disconnectId || !confirmChecked) return;
+    setConnectedAccounts((prev) => prev.filter((c) => c.id !== disconnectId));
+    setDisconnectId(null);
+    setConfirmChecked(false);
   };
 
   const closeAllModals = () => {
     setConnectPlatformId(null);
     setConnectEmail("");
-    setDisconnectTarget(null);
-    setDisconnectConfirmChecked(false);
+    setDisconnectId(null);
+    setConfirmChecked(false);
   };
 
-  // guard
   if (!isAuthorized) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
       <div className="max-w-[1200px] mx-auto px-6 py-8">
-        {/* Page header */}
+        {/* header */}
         <div>
           <h1 className="text-3xl font-extrabold">Connected Accounts</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage your social accounts</p>
+          <p className="text-sm text-gray-500 mt-1">Manage your social media accounts</p>
         </div>
 
-        {/* Connected Accounts container */}
-        <div className="mt-6 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
+        {/* Connected Accounts card */}
+        <section className="mt-6 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <div className="flex items-start justify-between mb-6">
             <h2 className="text-lg font-semibold">Connected Accounts</h2>
 
-            <div className="flex items-center gap-3">
-              <button
-                onClick={openAddSelector}
-                className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg border border-blue-100 hover:bg-blue-100"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <Plus size={14} />
-                  Add Account
-                </span>
-              </button>
-            </div>
+            {/* NOTE: Add Account button removed from top-right to match Figma */}
+            <div className="flex items-center gap-3"></div>
           </div>
 
           {connectedAccounts.length === 0 ? (
             <div className="p-8 border border-dashed border-gray-200 rounded-xl text-center text-gray-500">
-              No accounts connected yet. Click Add Account to connect one.
+              No accounts connected yet. Click Add Account to connect a platform.
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {connectedAccounts.map((acc) => (
-                <div
-                  key={acc.id}
-                  className="relative bg-white rounded-xl border border-gray-200 p-5 shadow-sm"
-                >
-                  {/* gear icon top-right */}
-                  <div className="absolute right-4 top-4 text-gray-300">
-                    {/* small gear placeholder */}
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z" stroke="#CBD5E1" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M19.4 15a1.6 1.6 0 00.3 1.6l.6.6a1 1 0 01-.7 1.7h-.8a1.6 1.6 0 00-1.4.9l-.2.6a1 1 0 01-1.9 0l-.2-.6a1.6 1.6 0 00-1.4-.9h-.8a1 1 0 01-.7-1.7l.6-.6a1.6 1.6 0 000-2.2l-.6-.6A1 1 0 019.6 9H10.4a1.6 1.6 0 001.4-.9l.2-.6a1 1 0 011.9 0l.2.6a1.6 1.6 0 001.4.9h.8a1 1 0 01.7 1.7l-.6.6a1.6 1.6 0 000 2.2z" stroke="#CBD5E1" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className={`p-3 rounded-lg ${acc.color} inline-flex items-center justify-center`}>
-                      {acc.icon}
+              {connectedAccounts.map((c) => {
+                const p = findPlatform(c.platformId)!;
+                return (
+                  <div key={c.id} className="relative bg-white rounded-lg border border-gray-200 p-5 shadow-sm">
+                    <div className="absolute right-4 top-4 text-gray-300">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z" stroke="#CBD5E1" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-gray-900">{acc.name}</div>
-                      <div className="text-xs text-gray-400 mt-1">{acc.username}</div>
-                      <div className="text-xs text-gray-500 mt-3">Connected <span className="font-medium text-gray-700">{acc.connectedDate}</span></div>
+                    <div className="flex items-start gap-4">
+                      <div className={`p-3 rounded-lg ${p.color} inline-flex items-center justify-center`}>{p.icon}</div>
 
-                      <div className="flex gap-3 mt-5">
-                        <button className="px-3 py-2 rounded-md bg-blue-50 text-blue-700 text-sm hover:bg-blue-100">+ Assign User</button>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-gray-900">{p.name}</div>
+                        <div className="text-xs text-gray-400 mt-1">{c.username}</div>
+                        <div className="text-sm text-gray-500 mt-3">
+                          Connected <span className="font-medium text-gray-700 ml-1">{c.connectedDate}</span>
+                        </div>
 
-                        <button
-                          onClick={() => openDisconnect(acc)}
-                          className="px-3 py-2 rounded-md bg-red-50 text-red-600 text-sm flex items-center gap-2 hover:bg-red-100"
-                        >
-                          <Trash2 size={14} />
-                          Disconnect
-                        </button>
+                        <div className="flex gap-3 mt-5">
+                          <button className="px-3 py-2 rounded-md bg-blue-50 text-blue-700 text-sm hover:bg-blue-100">+ Assign User</button>
+
+                          <button
+                            onClick={() => openDisconnectModal(c.id)}
+                            className="px-3 py-2 rounded-md bg-red-50 text-red-600 text-sm flex items-center gap-2 hover:bg-red-100"
+                          >
+                            <Trash2 size={14} /> Disconnect
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="ml-3">
+                        <span className="inline-block w-3 h-3 rounded-full bg-green-500" title="Connected" />
                       </div>
                     </div>
-
-                    <div className="ml-3">
-                      <span className="inline-block w-3 h-3 rounded-full bg-green-500" title="Connected" />
-                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
-        </div>
 
-        {/* Available Integrations */}
-        <div className="mt-8 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <AlertCircle size={18} className="text-gray-500" />
-            <h3 className="text-lg font-semibold">Available Integrations</h3>
+          {/* Add Account button moved to bottom of this card (centered) to match Figma */}
+          <div className="mt-6 flex justify-center">
+            <button
+              onClick={openAddSelector}
+              className="inline-flex items-center gap-2 px-6 py-2 bg-[#2B77E6] text-white rounded-full shadow-sm hover:bg-[#2469ca]"
+            >
+              <Plus size={14} /> Add Account
+            </button>
           </div>
+        </section>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {availableAccounts.map((a) => (
-              <div key={a.id} className="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-white">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-md ${a.color}`}>
-                    {a.icon}
-                  </div>
-                  <div>
-                    <div className="font-medium">{a.name}</div>
-                    <div className="text-xs text-gray-400">Connect</div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => openPlatformLogin(a.id)}
-                  className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center"
-                  aria-label={`Connect ${a.name}`}
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* NOTE: Available Integrations section removed to match Figma */}
       </div>
 
       {/* ================= MODALS ================= */}
 
-      {/* Platform selector (optional small grid) */}
+      {/* Centered selector modal (was right-side selector before) */}
       {connectPlatformId === "selector" && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
-          <div className="w-full max-w-lg bg-white rounded-2xl p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Add account</h3>
-              <button onClick={closeAllModals} className="text-gray-400">✕</button>
+          <div className="w-full max-w-3xl bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-semibold text-lg">Add account</h4>
+              <button onClick={closeAllModals} className="text-gray-500">✕</button>
             </div>
 
-            <p className="text-sm text-gray-500 mb-5">Choose a platform to connect</p>
+            <p className="text-sm text-gray-500 mb-4">Choose a platform to connect</p>
 
-            <div className="grid grid-cols-3 gap-4">
-              {availableAccounts.map((a) => (
-                <div key={a.id} className="flex flex-col items-center gap-3 p-4 border rounded-lg">
-                  <div className={`p-3 rounded-lg ${a.color}`}>{a.icon}</div>
-                  <div className="font-medium">{a.name}</div>
-                  <button onClick={() => quickConnect(a.id)} className="mt-1 px-3 py-1 rounded-md bg-blue-600 text-white text-sm">Connect</button>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {platforms.map((p) => (
+                <div key={p.id} className="flex flex-col items-center gap-2 p-4 rounded-lg border border-gray-100">
+                  <div className={`p-3 rounded-lg ${p.color}`}>{p.icon}</div>
+                  <div className="text-sm font-medium">{p.name}</div>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => openPlatformLogin(p.id)}
+                      className="px-3 py-1 rounded-md bg-[#274C77] text-white text-sm"
+                    >
+                      Connect
+                    </button>
+                    <button
+                      onClick={() => quickConnect(p.id)}
+                      className="px-3 py-1 rounded-md border border-gray-200 text-sm"
+                    >
+                      Quick
+                    </button>
+                  </div>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-6 text-right">
+              <button onClick={closeAllModals} className="text-sm text-gray-500">Cancel</button>
             </div>
           </div>
         </div>
@@ -332,16 +264,14 @@ export default function AccountsPage() {
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50">
           <div className="w-full max-w-md bg-white rounded-2xl p-6 md:p-8 shadow-xl">
             <div className="flex items-start gap-4 mb-4">
-              <div className={`p-3 rounded-lg ${accounts.find((a) => a.id === connectPlatformId)?.color}`}>
-                {accounts.find((a) => a.id === connectPlatformId)?.icon}
-              </div>
+              <div className={`p-3 rounded-lg ${findPlatform(connectPlatformId)?.color}`}>{findPlatform(connectPlatformId)?.icon}</div>
               <div>
-                <h3 className="text-xl font-bold">Connect {accounts.find((a) => a.id === connectPlatformId)?.name}</h3>
+                <h3 className="text-xl font-bold">Connect {findPlatform(connectPlatformId)?.name}</h3>
                 <p className="text-sm text-gray-500 mt-1">Log in to authorize access and begin tracking your analytics.</p>
               </div>
             </div>
 
-            <form onSubmit={handleLoginConnect} className="space-y-4">
+            <form onSubmit={(e) => { e.preventDefault(); handleConnectSubmit(); }} className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-gray-700 block mb-2">Email Address</label>
                 <input
@@ -373,7 +303,7 @@ export default function AccountsPage() {
       )}
 
       {/* Disconnect modal */}
-      {disconnectTarget && (
+      {disconnectId && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50">
           <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-xl text-center">
             <div className="flex items-center justify-center mb-4">
@@ -383,16 +313,21 @@ export default function AccountsPage() {
             </div>
 
             <h3 className="text-xl font-bold mb-2">Disconnect Account?</h3>
+
             <p className="text-sm text-gray-600 mb-4">
-              You are about to remove <span className="font-semibold">{disconnectTarget.username ?? disconnectTarget.name}</span>. We will stop tracking data for this platform immediately.
+              You are about to remove{" "}
+              <span className="font-semibold">
+                {connectedAccounts.find((c) => c.id === disconnectId)?.username ?? "this account"}
+              </span>
+              . We will stop tracking data for this platform immediately.
             </p>
 
             <div className="mb-4 p-4 border rounded-lg bg-gray-50 text-left">
               <label className="flex items-start gap-3">
                 <input
                   type="checkbox"
-                  checked={disconnectConfirmChecked}
-                  onChange={(e) => setDisconnectConfirmChecked(e.target.checked)}
+                  checked={confirmChecked}
+                  onChange={(e) => setConfirmChecked(e.target.checked)}
                   className="mt-1 w-4 h-4"
                 />
                 <div className="text-sm text-gray-700">
@@ -402,11 +337,11 @@ export default function AccountsPage() {
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => { setDisconnectTarget(null); setDisconnectConfirmChecked(false); }} className="flex-1 py-2 rounded-lg border border-gray-200">Cancel</button>
+              <button onClick={() => { setDisconnectId(null); setConfirmChecked(false); }} className="flex-1 py-2 rounded-lg border border-gray-200">Cancel</button>
               <button
-                onClick={confirmDisconnect}
-                disabled={!disconnectConfirmChecked}
-                className={`flex-1 py-2 rounded-lg text-white ${disconnectConfirmChecked ? "bg-red-600 hover:bg-red-700" : "bg-red-300 cursor-not-allowed"}`}
+                onClick={handleConfirmDisconnect}
+                disabled={!confirmChecked}
+                className={`flex-1 py-2 rounded-lg text-white ${confirmChecked ? "bg-red-600 hover:bg-red-700" : "bg-red-300 cursor-not-allowed"}`}
               >
                 Disconnect
               </button>
