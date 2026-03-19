@@ -205,7 +205,7 @@ function ChooseAccountModal({ platform, onClose, onSelect }: { platform: Platfor
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <PlatformIcon id={platform.id} size={20} />
             <div>
@@ -215,11 +215,11 @@ function ChooseAccountModal({ platform, onClose, onSelect }: { platform: Platfor
           </div>
           <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 18, color: "#9ca3af" }}>✕</button>
         </div>
-        <div className="p-4 space-y-1">
+        <div className="px-4 pt-3 pb-2 space-y-1">
           {MOCK_ACCOUNTS.map(acc => (
             <button key={acc} onClick={() => setSelected(acc)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${selected === acc ? "bg-blue-50 text-primary font-semibold" : "bg-transparent text-gray-700 hover:bg-gray-50"}`}
-              style={{ border: "none", cursor: "pointer" }}>
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-left ${selected === acc ? "bg-blue-50 text-primary font-semibold" : "bg-transparent text-gray-700 hover:bg-gray-50"}`}
+              style={{ border: selected === acc ? "1.5px solid #e0ac3a" : "1.5px solid transparent", cursor: "pointer" }}>
               <span className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${selected === acc ? "border-primary bg-primary" : "border-gray-300 bg-white"}`}>
                 {selected === acc && <Check size={10} className="text-white" />}
               </span>
@@ -403,7 +403,7 @@ export default function SchedulePage() {
 
       {/* Header */}
       <div className="mb-5">
-        <h1 className="text-2xl sm:text-3xl font-bold text-primary">Content Scheduler</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Content Scheduler</h1>
         <p className="text-gray-400 text-sm mt-1">Create and schedule posts with AI assistance</p>
       </div>
 
@@ -591,7 +591,7 @@ export default function SchedulePage() {
                   ) : filteredPosts.map(post => (
                     <tr key={post.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors group">
                       <td className="py-3 pr-2 text-xs font-semibold text-gray-700 whitespace-nowrap">{post.title}</td>
-                      <td className="py-3 pr-2 text-xs text-primary font-semibold whitespace-nowrap">-{post.account}</td>
+                      <td className="py-3 pr-2 text-xs text-primary font-semibold whitespace-nowrap">{post.account}</td>
                       <td className="py-3 pr-2 text-xs text-gray-500 whitespace-nowrap">{post.date}</td>
                       <td className="py-3 pr-2 text-xs text-gray-500 whitespace-nowrap">{post.time}</td>
                       <td className="py-3 pr-2">
