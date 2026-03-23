@@ -110,8 +110,8 @@ export default function ProfilePage() {
     <div className="flex flex-col gap-6 max-w-4xl mx-auto pb-12 w-full">
       
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
-        <p className="text-gray-500 mt-1">Manage your account details and security preferences.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Profile Settings</h1>
+        <p className="text-gray-400 text-sm mt-1">Manage your account details and security preferences.</p>
       </div>
 
       <form onSubmit={handleSaveChanges} className="flex flex-col gap-6">

@@ -275,8 +275,8 @@ export default function PostsPage() {
       {viewMode === "table" && (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
           <div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-900">Post</h1>
-            <p className="text-xs sm:text-sm text-gray-500">View and manage your post</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Post</h1>
+            <p className="text-gray-400 text-sm mt-1">View and manage your post</p>
           </div>
           
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
