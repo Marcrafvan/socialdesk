@@ -132,112 +132,101 @@ export default function AccountsPage() {
   if (!isAuthorized) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800">
-      <div className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        {/* header */}
+    <div className="flex flex-col gap-6 overflow-x-hidden pb-10">
+      
+      {/* Header & Main Action */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Connected Accounts</h1>
-          <p className="text-gray-400 text-sm mt-1">Manage your social media accounts</p>
+          <h1 className="text-3xl font-bold text-gray-900">Connected Accounts</h1>
+          <p className="text-gray-500 mt-1">Manage your social media accounts</p>
         </div>
+        
+        {/* Moved the Add Account button here to match the Management Page layout */}
+        <button
+          onClick={openAddSelector}
+          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#274C77] text-white text-sm rounded-lg font-bold hover:bg-[#1a385b] transition-colors shadow-sm shrink-0"
+        >
+          <Plus size={18} /> Add Account
+        </button>
+      </div>
 
-        {/* Connected Accounts card */}
-        <section className="mt-6 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
-          <div className="mb-5 flex items-start justify-between gap-4 sm:mb-6">
-            <h2 className="text-base font-semibold sm:text-lg">Connected Accounts</h2>
+      {/* Connected Accounts Grid (Wrapper styling removed to blend with background) */}
+      <div className="mt-2">
+        {connectedAccounts.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gray-300 bg-white/50 p-10 text-center text-gray-500">
+            No accounts connected yet. Tap Add Account to connect a platform.
           </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 sm:gap-5 lg:gap-6">
+            {connectedAccounts.map((c) => {
+              const p = findPlatform(c.platformId)!;
+              return (
+                <div key={c.id} className="relative rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
+                  
+                  {/* Status Dot */}
+                  <div className="absolute right-5 top-5">
+                    <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-500 shadow-sm" title="Connected" />
+                  </div>
 
-          {connectedAccounts.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-gray-200 p-6 text-center text-gray-500 sm:p-8">
-              No accounts connected yet. Tap Add Account to connect a platform.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 sm:gap-5 lg:gap-6">
-              {connectedAccounts.map((c) => {
-                const p = findPlatform(c.platformId)!;
-                return (
-                  <div key={c.id} className="relative rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-                    <div className="absolute right-4 top-4 text-gray-300">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                        <path
-                          d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z"
-                          stroke="#CBD5E1"
-                          strokeWidth="1.2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                  <div className="flex items-start gap-4">
+                    <div className={`inline-flex items-center justify-center rounded-xl p-3 ${p.color}`}>
+                      {p.icon}
                     </div>
 
-                    <div className="flex items-start gap-3 sm:gap-4">
-                      <div className={`inline-flex items-center justify-center rounded-lg p-3 ${p.color}`}>{p.icon}</div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-semibold text-gray-900">{p.name}</div>
-                        <div className="mt-1 truncate text-xs text-gray-400">{c.username}</div>
-                        <div className="mt-3 text-sm text-gray-500">
-                          Connected <span className="ml-1 font-medium text-gray-700">{c.connectedDate}</span>
-                        </div>
-
-                        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-2">
-                          <button className="inline-flex w-full items-center justify-center rounded-md bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 sm:w-auto sm:min-w-[112px]">
-                            + Assign User
-                          </button>
-
-                          <button
-                            onClick={() => openDisconnectModal(c.id)}
-                            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 sm:w-auto sm:min-w-[112px]"
-                          >
-                            <Trash2 size={14} /> Disconnect
-                          </button>
-                        </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-bold text-gray-900">{p.name}</div>
+                      <div className="mt-0.5 truncate text-xs font-medium text-gray-500">{c.username}</div>
+                      
+                      <div className="mt-4 text-xs font-medium text-gray-400">
+                        Connected <span className="ml-1 text-gray-600">{c.connectedDate}</span>
                       </div>
 
-                      <div className="ml-1 sm:ml-3">
-                        <span className="inline-block h-3 w-3 rounded-full bg-green-500" title="Connected" />
+                      <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-2">
+                        <button className="inline-flex w-full items-center justify-center rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors sm:w-auto sm:min-w-[112px]">
+                          + Assign User
+                        </button>
+
+                        <button
+                          onClick={() => openDisconnectModal(c.id)}
+                          className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-100 transition-colors sm:w-auto sm:min-w-[112px]"
+                        >
+                          <Trash2 size={14} /> Disconnect
+                        </button>
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="mt-6 flex justify-center">
-            <button
-              onClick={openAddSelector}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#2B77E6] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#2469ca] sm:w-auto sm:px-6 sm:py-2"
-            >
-              <Plus size={14} /> Add Account
-            </button>
+                </div>
+              );
+            })}
           </div>
-        </section>
+        )}
       </div>
 
       {/* ================= MODALS ================= */}
 
       {/* Centered selector modal */}
       {connectPlatformId === "selector" && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-3 overflow-y-auto sm:items-center sm:p-4">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 backdrop-blur-sm p-3 overflow-y-auto sm:items-center sm:p-4">
           <div className="w-full max-w-4xl rounded-2xl border border-gray-100 bg-white p-4 shadow-xl max-h-[90dvh] overflow-y-auto sm:p-6">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <h4 className="text-lg font-semibold">Add account</h4>
-              <button onClick={closeAllModals} className="rounded-full p-2 text-gray-500 hover:bg-gray-100" aria-label="Close">
-                <X size={18} />
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h4 className="text-xl font-bold text-gray-900">Add Account</h4>
+              <button onClick={closeAllModals} className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-colors" aria-label="Close">
+                <X size={20} />
               </button>
             </div>
 
-            <p className="mb-4 text-sm text-gray-500">Choose a platform to connect</p>
+            <p className="mb-6 text-sm text-gray-500 font-medium">Choose a platform to connect to SocialDesk.</p>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-4">
               {platforms.map((p) => (
-                <div key={p.id} className="flex h-full flex-col items-center gap-3 rounded-xl border border-gray-100 p-4 text-center">
-                  <div className={`rounded-lg p-3 ${p.color}`}>{p.icon}</div>
-                  <div className="text-sm font-medium text-gray-900">{p.name}</div>
+                <div key={p.id} className="flex h-full flex-col items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50/50 p-5 text-center transition-all hover:bg-white hover:shadow-md hover:border-gray-200">
+                  <div className={`rounded-xl p-4 ${p.color}`}>{p.icon}</div>
+                  <div className="text-sm font-bold text-gray-900">{p.name}</div>
 
-                  <div className="mt-auto flex w-full justify-center">
+                  <div className="mt-auto pt-4 flex w-full justify-center">
                     <button
                       onClick={() => quickConnect(p.id)}
-                      className="inline-flex w-full max-w-[220px] items-center justify-center rounded-md bg-[#2B77E6] px-3 py-2.5 text-sm font-medium text-white whitespace-nowrap hover:bg-[#2469ca]"
+                      className="inline-flex w-full items-center justify-center rounded-lg bg-white border border-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 whitespace-nowrap hover:bg-[#274C77] hover:text-white hover:border-[#274C77] transition-all shadow-sm"
                     >
                       Connect
                     </button>
@@ -245,27 +234,21 @@ export default function AccountsPage() {
                 </div>
               ))}
             </div>
-
-            <div className="mt-5 flex justify-end">
-              <button onClick={closeAllModals} className="text-sm text-gray-500 hover:text-gray-700">
-                Cancel
-              </button>
-            </div>
           </div>
         </div>
       )}
 
       {/* Platform login modal */}
       {connectPlatformId && connectPlatformId !== "selector" && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-3 sm:p-4 overflow-y-auto">
-          <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl max-h-[90dvh] overflow-y-auto sm:p-6 md:p-8">
-            <div className="mb-4 flex items-start gap-4">
-              <div className={`rounded-lg p-3 ${findPlatform(connectPlatformId)?.color}`}>{findPlatform(connectPlatformId)?.icon}</div>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl max-h-[90dvh] overflow-y-auto sm:p-8">
+            <div className="mb-6 flex items-start gap-4">
+              <div className={`rounded-xl p-3 ${findPlatform(connectPlatformId)?.color}`}>{findPlatform(connectPlatformId)?.icon}</div>
               <div className="min-w-0 flex-1">
-                <h3 className="text-lg font-bold sm:text-xl">Connect {findPlatform(connectPlatformId)?.name}</h3>
-                <p className="mt-1 text-sm text-gray-500">Log in to authorize access and begin tracking your analytics.</p>
+                <h3 className="text-xl font-bold text-gray-900">Connect {findPlatform(connectPlatformId)?.name}</h3>
+                <p className="mt-1 text-xs font-medium text-gray-500 leading-relaxed">Log in to authorize access and begin tracking your analytics.</p>
               </div>
-              <button onClick={closeAllModals} className="rounded-full p-2 text-gray-500 hover:bg-gray-100 sm:hidden" aria-label="Close">
+              <button onClick={closeAllModals} className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-colors" aria-label="Close">
                 <X size={18} />
               </button>
             </div>
@@ -278,32 +261,28 @@ export default function AccountsPage() {
               className="space-y-4"
             >
               <div>
-                <label className="mb-2 block text-xs font-semibold text-gray-700">Email Address</label>
+                <label className="mb-1.5 block text-xs font-bold text-gray-700 uppercase tracking-wider">Email Address</label>
                 <input
                   required
                   value={connectEmail}
                   onChange={(e) => setConnectEmail(e.target.value)}
                   type="email"
                   placeholder="name@example.com"
-                  className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                  className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-[#274C77]/20 transition-all shadow-sm"
                 />
               </div>
 
-              <button type="submit" className="w-full rounded-lg bg-[#274C77] py-3 text-sm font-bold text-white">
-                Log In &amp; Authorize
-              </button>
+              <div className="pt-2 flex flex-col gap-3">
+                <button type="submit" className="w-full rounded-lg bg-[#274C77] py-3 text-sm font-bold text-white shadow-sm hover:bg-[#1a385b] transition-colors">
+                  Log In &amp; Authorize
+                </button>
 
-              <button
-                type="button"
-                onClick={() => quickConnect(connectPlatformId)}
-                className="w-full rounded-lg border border-gray-200 py-3 text-sm font-semibold text-gray-700"
-              >
-                Quick Connect (Mock OAuth)
-              </button>
-
-              <div className="flex justify-center pt-1">
-                <button type="button" onClick={closeAllModals} className="text-sm text-gray-500 hover:text-gray-700">
-                  Cancel
+                <button
+                  type="button"
+                  onClick={() => quickConnect(connectPlatformId)}
+                  className="w-full rounded-lg border border-gray-200 bg-white py-3 text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
+                >
+                  Quick Connect (Mock OAuth)
                 </button>
               </div>
             </form>
@@ -313,31 +292,31 @@ export default function AccountsPage() {
 
       {/* Disconnect modal */}
       {disconnectId && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-3 sm:p-4 overflow-y-auto">
-          <div className="w-full max-w-md rounded-2xl bg-white p-4 text-center shadow-xl max-h-[90dvh] overflow-y-auto sm:p-6">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-xl max-h-[90dvh] overflow-y-auto sm:p-8">
             <div className="mb-4 flex items-center justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
-                <Trash2 className="text-red-600" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
+                <Trash2 size={28} className="text-red-500" />
               </div>
             </div>
 
-            <h3 className="mb-2 text-xl font-bold">Disconnect Account?</h3>
+            <h3 className="mb-2 text-xl font-bold text-gray-900">Disconnect Account?</h3>
 
-            <p className="mb-4 text-sm text-gray-600">
+            <p className="mb-6 text-sm font-medium text-gray-500">
               You are about to remove{" "}
-              <span className="font-semibold">{connectedAccounts.find((c) => c.id === disconnectId)?.username ?? "this account"}</span>. We will
+              <span className="font-bold text-gray-900">{connectedAccounts.find((c) => c.id === disconnectId)?.username ?? "this account"}</span>. We will
               stop tracking data for this platform immediately.
             </p>
 
-            <div className="mb-4 rounded-lg border bg-gray-50 p-4 text-left">
-              <label className="flex items-start gap-3">
+            <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4 text-left">
+              <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={confirmChecked}
                   onChange={(e) => setConfirmChecked(e.target.checked)}
-                  className="mt-1 h-4 w-4 shrink-0"
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-[#274C77] focus:ring-[#274C77]"
                 />
-                <div className="text-sm text-gray-700">
+                <div className="text-sm font-medium text-gray-700 leading-tight">
                   I understand that SocialDesk will no longer have access to this account and historical data may be lost.
                 </div>
               </label>
@@ -349,14 +328,14 @@ export default function AccountsPage() {
                   setDisconnectId(null);
                   setConfirmChecked(false);
                 }}
-                className="w-full rounded-lg border border-gray-200 py-3 text-sm font-medium sm:w-auto sm:min-w-[120px] sm:px-4 sm:py-2"
+                className="w-full rounded-lg border border-gray-200 bg-white py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors sm:w-auto sm:px-6"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmDisconnect}
                 disabled={!confirmChecked}
-                className={`w-full rounded-lg py-3 text-sm font-medium text-white sm:w-auto sm:min-w-[120px] sm:px-4 sm:py-2 ${
+                className={`w-full rounded-lg py-2.5 text-sm font-bold text-white transition-colors sm:w-auto sm:px-6 shadow-sm ${
                   confirmChecked ? "bg-red-600 hover:bg-red-700" : "cursor-not-allowed bg-red-300"
                 }`}
               >
