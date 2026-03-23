@@ -234,18 +234,12 @@ export default function AccountsPage() {
                   <div className={`rounded-lg p-3 ${p.color}`}>{p.icon}</div>
                   <div className="text-sm font-medium text-gray-900">{p.name}</div>
 
-                  <div className="mt-auto flex w-full flex-col gap-2 sm:mx-auto sm:max-w-[220px] sm:flex-row sm:justify-center">
-                    <button
-                      onClick={() => openPlatformLogin(p.id)}
-                      className="inline-flex w-full items-center justify-center rounded-md bg-[#274C77] px-3 py-2.5 text-sm font-medium text-white whitespace-nowrap sm:w-1/2 sm:min-w-0 sm:flex-1"
-                    >
-                      Connect
-                    </button>
+                  <div className="mt-auto flex w-full justify-center">
                     <button
                       onClick={() => quickConnect(p.id)}
-                      className="inline-flex w-full items-center justify-center rounded-md border border-gray-200 px-3 py-2.5 text-sm font-medium whitespace-nowrap sm:w-1/2 sm:min-w-0 sm:flex-1"
+                      className="inline-flex w-full max-w-[220px] items-center justify-center rounded-md bg-[#2B77E6] px-3 py-2.5 text-sm font-medium text-white whitespace-nowrap hover:bg-[#2469ca]"
                     >
-                      Quick
+                      Connect
                     </button>
                   </div>
                 </div>
