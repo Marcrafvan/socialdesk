@@ -86,8 +86,8 @@ export default function NotificationsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Notifications</h1>
-          <p className="text-gray-500 mt-1">Stay updated on your account activity</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Notifications</h1>
+          <p className="text-gray-400 text-sm mt-1">Stay updated on your account activity</p>
         </div>
         
         {/* BUG FIX: The closing </div> was previously inside this condition! */}

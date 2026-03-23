@@ -136,8 +136,8 @@ export default function AccountsPage() {
       <div className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         {/* header */}
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Connected Accounts</h1>
-          <p className="mt-1 text-sm text-gray-500">Manage your social media accounts</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Connected Accounts</h1>
+          <p className="text-gray-400 text-sm mt-1">Manage your social media accounts</p>
         </div>
 
         {/* Connected Accounts card */}

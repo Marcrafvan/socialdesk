@@ -372,8 +372,8 @@ export default function AnalyticsPage() {
       {/* Header & Filters */}
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-2 sm:gap-3 pb-1">
         <div>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Analytics</h1>
-          <p className="text-xs sm:text-sm lg:text-base text-gray-500 mt-0.5">Track your social media performance</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Analytics</h1>
+          <p className="text-gray-400 text-sm mt-1">Track your social media performance</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">

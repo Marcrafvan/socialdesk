@@ -622,8 +622,8 @@ export default function Home() {
 
       {/* ── Page content ── */}
       <div className="dash-content">
-        <h1 style={{ fontSize: 28, fontWeight: 700, margin: "0 0 6px" }}>Dashboard</h1>
-        <p style={{ fontSize: 14, color: "#64748b", margin: "0 0 22px" }}>Overview of all social media accounts performance.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Dashboard</h1>
+        <p className="text-gray-400 text-sm mt-1">Overview of all social media accounts performance.</p>
 
         {/* ── Two-column layout ── */}
         <div className="dash-two-col">
@@ -632,7 +632,7 @@ export default function Home() {
           <div className="dash-left">
 
             {/* Overall Performance card */}
-            <div style={{ background: "#fff", borderRadius: 14, padding: "22px 24px", border: "1px solid #e8edf3" }}>
+            <div style={{ background: "#fff", borderRadius: 14, padding: "22px 24px", border: "1px solid #e8edf3", marginTop: "25px"}}>
               <p style={{ fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>Overall Performance <span style={{ fontWeight: 400 }}>(All Accounts)</span></p>
               <p style={{ fontSize: 13, color: "#94a3b8", margin: "0 0 18px" }}>Combined analytics for Egetinnz PH, Egetinnz USA, Fibei Travel, and Digitimmerse.</p>
               <div className="dash-stat-cards">

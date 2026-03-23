@@ -141,8 +141,8 @@ export default function ManagementPage() {
       
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-        <p className="text-gray-500 mt-1">Manage and monitor all user accounts.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">User Management</h1>
+        <p className="text-gray-400 text-sm mt-1">Manage and monitor all user accounts.</p>
       </div>
 
       {/* KPI Cards Row */}
