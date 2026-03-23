@@ -33,8 +33,8 @@ const TIMEZONES = [
 ];
 
 const INIT_PLATFORMS: Platform[] = [
-  { id: "facebook",  name: "Facebook",  connected: true,  account: "FiBei Travel PH" },
-  { id: "instagram", name: "Instagram", connected: true,  account: "FiBei Travel PH" },
+  { id: "facebook",  name: "Facebook",  connected: true,  account: "" },
+  { id: "instagram", name: "Instagram", connected: true,  account: "" },
   { id: "youtube",   name: "YouTube",   connected: false, account: "" },
   { id: "tiktok",    name: "TikTok",    connected: false, account: "" },
   { id: "pinterest", name: "Pinterest", connected: false, account: "" },
@@ -99,7 +99,11 @@ function MiniCalendar({ selectedDate, onSelect }: { selectedDate: Date | null; o
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells: (number | null)[] = [...Array(firstDay).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const isSel = (d: number) => selectedDate?.getDate() === d && selectedDate?.getMonth() === month && selectedDate?.getFullYear() === year;
+  const isToday = (d: number) => today.getDate() === d && today.getMonth() === month && today.getFullYear() === year;
+  const isPast = (d: number) => new Date(year, month, d) < today;
 
   return (
     <div>
@@ -115,10 +119,13 @@ function MiniCalendar({ selectedDate, onSelect }: { selectedDate: Date | null; o
       </div>
       <div className="grid grid-cols-7 gap-0.5">
         {cells.map((day, i) => day === null ? <div key={i} /> : (
-          <button key={i} onClick={() => onSelect(new Date(year, month, day))}
-            style={{ border: "none", cursor: "pointer", borderRadius: 6, padding: "3px 0", fontSize: 11, fontWeight: 500,
+          <button key={i} onClick={() => !isPast(day) && onSelect(new Date(year, month, day))}
+            style={{ border: "none", cursor: isPast(day) ? "not-allowed" : "pointer", borderRadius: 6, padding: "3px 0", fontSize: 11, fontWeight: 500,
               background: isSel(day) ? "#1e3a5f" : "transparent",
-              color: isSel(day) ? "white" : "#374151" }}>
+              color: isPast(day) ? "#d1d5db" : isSel(day) ? "white" : isToday(day) ? "#1e3a5f" : "#374151",
+              fontWeight: isToday(day) ? "bold" : 500,
+              border: isToday(day) && !isSel(day) ? "1.5px solid #1e3a5f" : "none",
+              opacity: isPast(day) ? 0.4 : 1 }}>
             {day}
           </button>
         ))}
@@ -131,13 +138,19 @@ function MiniCalendar({ selectedDate, onSelect }: { selectedDate: Date | null; o
 
 function SchedulePostPopup({ onClose, onDone }: { onClose: () => void; onDone: (date: string, time: string, title: string) => void }) {
   const [title, setTitle] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [hour, setHour] = useState(11);
-  const [minute, setMinute] = useState(0);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [hour, setHour] = useState(new Date().getHours() % 12 || 12);
+  const [minute, setMinute] = useState(new Date().getMinutes());
+  const [ampm, setAmpm] = useState<"AM" | "PM">(new Date().getHours() >= 12 ? "PM" : "AM");
+  const [is24hr, setIs24hr] = useState(false);
   const [timezone, setTimezone] = useState(TIMEZONES[0].label);
 
+  const displayHour = is24hr
+    ? String(ampm === "PM" && hour !== 12 ? hour + 12 : ampm === "AM" && hour === 12 ? 0 : hour).padStart(2,"0")
+    : String(hour).padStart(2,"0");
+
   const dateStr = selectedDate
-    ? `${String(selectedDate.getMonth()+1).padStart(2,"0")} / ${String(selectedDate.getDate()).padStart(2,"0")} / ${selectedDate.getFullYear()} - ${String(hour).padStart(2,"0")}:${String(minute).padStart(2,"0")}`
+    ? `${String(selectedDate.getMonth()+1).padStart(2,"0")} / ${String(selectedDate.getDate()).padStart(2,"0")} / ${selectedDate.getFullYear()} - ${displayHour}:${String(minute).padStart(2,"0")}${is24hr ? "" : " " + ampm}`
     : "Select Date and Time";
 
   return (
@@ -160,17 +173,49 @@ function SchedulePostPopup({ onClose, onDone }: { onClose: () => void; onDone: (
           <MiniCalendar selectedDate={selectedDate} onSelect={setSelectedDate} />
         </div>
 
-        {/* Time */}
-        <div className="mb-3 p-2 border border-gray-100 rounded-xl bg-gray-50">
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">TIME</div>
+          <div className="mb-3 p-2 border border-gray-100 rounded-xl bg-gray-50">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">TIME</div>
+            <div className="flex items-center gap-1 bg-gray-200 rounded-full p-0.5">
+              <button onClick={() => setIs24hr(false)}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all ${!is24hr ? "bg-white text-primary shadow" : "text-gray-400"}`}
+                style={{ border: "none", cursor: "pointer" }}>12hr</button>
+              <button onClick={() => setIs24hr(true)}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all ${is24hr ? "bg-white text-primary shadow" : "text-gray-400"}`}
+                style={{ border: "none", cursor: "pointer" }}>24hr</button>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
-            <input type="number" value={hour} min={0} max={23} onChange={e => setHour(Number(e.target.value))}
-              className="w-12 text-center border border-gray-200 rounded-lg p-1.5 text-sm focus:outline-none focus:border-primary" />
+            <input
+              type="number" value={is24hr ? displayHour : hour}
+              min={is24hr ? 0 : 1} max={is24hr ? 23 : 12}
+              onChange={e => {
+                const val = Number(e.target.value);
+                if (is24hr) {
+                  const clamped = Math.min(23, Math.max(0, val));
+                  setHour(clamped > 12 ? clamped - 12 : clamped === 0 ? 12 : clamped);
+                  setAmpm(clamped >= 12 ? "PM" : "AM");
+                } else {
+                  setHour(Math.min(12, Math.max(1, val)));
+                }
+              }}
+              className="w-12 text-center border border-gray-200 rounded-lg p-1.5 text-sm focus:outline-none focus:border-primary bg-white"
+              style={{ WebkitAppearance: "none", MozAppearance: "textfield" }} />
             <span className="text-gray-400 font-bold text-lg">:</span>
-            <input type="number" value={minute} min={0} max={59} onChange={e => setMinute(Number(e.target.value))}
-              className="w-12 text-center border border-gray-200 rounded-lg p-1.5 text-sm focus:outline-none focus:border-primary" />
+            <input
+              type="number" value={String(minute).padStart(2,"0")} min={0} max={59}
+              onChange={e => setMinute(Math.min(59, Math.max(0, Number(e.target.value))))}
+              className="w-12 text-center border border-gray-200 rounded-lg p-1.5 text-sm focus:outline-none focus:border-primary bg-white"
+              style={{ WebkitAppearance: "none", MozAppearance: "textfield" }} />
+            {!is24hr && (
+              <select value={ampm} onChange={e => setAmpm(e.target.value as "AM" | "PM")}
+                className="border border-gray-200 rounded-lg p-1.5 text-sm focus:outline-none focus:border-primary bg-white cursor-pointer">
+                <option>AM</option>
+                <option>PM</option>
+              </select>
+            )}
             <select value={timezone} onChange={e => setTimezone(e.target.value)}
-              className="flex-1 border border-gray-200 rounded-lg p-1.5 text-xs focus:outline-none focus:border-primary bg-white min-w-0">
+              className="flex-1 border border-gray-200 rounded-lg p-1.5 text-xs focus:outline-none focus:border-primary bg-white min-w-0 cursor-pointer">
               {TIMEZONES.map(tz => <option key={tz.label} value={tz.label}>{tz.label}</option>)}
             </select>
           </div>
@@ -188,7 +233,7 @@ function SchedulePostPopup({ onClose, onDone }: { onClose: () => void; onDone: (
             className="flex-1 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 cursor-pointer bg-white hover:bg-gray-50">
             Cancel
           </button>
-          <button onClick={() => { onDone(selectedDate?.toLocaleDateString("en-US") || "-", `${String(hour).padStart(2,"0")}:${String(minute).padStart(2,"0")}`, title || "Untitled Post"); onClose(); }}
+          <button onClick={() => { onDone(selectedDate?.toLocaleDateString("en-US") || "-", `${String(hour).padStart(2,"0")}:${String(minute).padStart(2,"0")} ${ampm}`, title || "Untitled Post"); onClose(); }}
             className="flex-1 py-2 bg-primary text-white rounded-lg text-sm font-semibold border-0 cursor-pointer hover:bg-blue-900 transition-colors">
             Done
           </button>
@@ -243,9 +288,18 @@ function ChooseAccountModal({ platform, onClose, onSelect }: { platform: Platfor
 
 function EditPostModal({ post, platforms, onClose, onSave }: { post: ScheduledPost; platforms: Platform[]; onClose: () => void; onSave: (p: ScheduledPost) => void }) {
   const [title, setTitle] = useState(post.title);
-  const [caption, setCaption] = useState("");
+  const [editAccount, setEditAccount] = useState(post.account);
+  const [editCaption, setEditCaption] = useState("");
+  const [editPlatformCaptions, setEditPlatformCaptions] = useState<Record<string, string>>({});
+  const [activeEditTab, setActiveEditTab] = useState("all");
   const [postPlatforms, setPostPlatforms] = useState(post.platforms);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState(post.date);
+  const [editHour, setEditHour] = useState(11);
+  const [editMinute, setEditMinute] = useState(0);
+  const [editAmpm, setEditAmpm] = useState<"AM" | "PM">("AM");
+  const [editIs24hr, setEditIs24hr] = useState(false);
+  const [editTimezone, setEditTimezone] = useState(TIMEZONES[0].label);
   const fileRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -256,27 +310,45 @@ function EditPostModal({ post, platforms, onClose, onSave }: { post: ScheduledPo
           <button onClick={onClose} style={{ border: "none", background: "none", cursor: "pointer", color: "rgba(255,255,255,0.7)", fontSize: 20 }}>✕</button>
         </div>
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          {/* LEFT: Caption */}
           <div className="space-y-3">
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Edit Post Title here..."
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:border-primary" />
+
+            {/* Platform caption tabs */}
+            {platforms.filter(p => postPlatforms.includes(p.id)).length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button onClick={() => setActiveEditTab("all")}
+                  className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${activeEditTab === "all" ? "bg-primary text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                  style={{ border: "none", cursor: "pointer" }}>All</button>
+                {platforms.filter(p => postPlatforms.includes(p.id)).map(p => (
+                  <button key={p.id} onClick={() => setActiveEditTab(p.id)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${activeEditTab === p.id ? "bg-primary text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                    style={{ border: "none", cursor: "pointer" }}>
+                    <PlatformIcon id={p.id} size={11} />{p.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="border border-gray-200 rounded-xl bg-gray-50 flex flex-col">
-              <textarea value={caption} onChange={e => setCaption(e.target.value)} rows={4} placeholder="What would you like to post?"
+              <textarea
+                value={activeEditTab === "all" ? editCaption : (editPlatformCaptions[activeEditTab] || "")}
+                onChange={e => {
+                  if (activeEditTab === "all") setEditCaption(e.target.value);
+                  else setEditPlatformCaptions(prev => ({ ...prev, [activeEditTab]: e.target.value }));
+                }}
+                rows={4}
+                placeholder={activeEditTab === "all" ? "What would you like to post?" : `Write caption for ${platforms.find(p => p.id === activeEditTab)?.name}...`}
                 className="w-full p-3 bg-transparent text-sm resize-none focus:outline-none" />
               <div className="flex items-center justify-between px-3 py-2 border-t border-gray-200">
                 <span className="text-xs text-gray-500">Add to your post</span>
                 <div className="flex items-center gap-3">
-                  <button style={{ border: "none", background: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }} className="text-gray-400 hover:text-primary transition-colors">
-                    <Smile size={18} />
-                  </button>
-                  <button onClick={() => fileRef.current?.click()} style={{ border: "none", background: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }} className="text-gray-400 hover:text-primary transition-colors">
-                    <Upload size={18} />
-                  </button>
-                  <button style={{ border: "none", background: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }} className="text-gray-400 hover:text-primary transition-colors">
-                    <MapPin size={18} />
-                  </button>
-                  <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => {
-                    const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = ev => setImagePreview(ev.target?.result as string); r.readAsDataURL(f); }
-                  }} />
+                  <button style={{ border: "none", background: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }} className="text-gray-400 hover:text-primary transition-colors"><Smile size={18} /></button>
+                  <button onClick={() => fileRef.current?.click()} style={{ border: "none", background: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }} className="text-gray-400 hover:text-primary transition-colors"><Upload size={18} /></button>
+                  <button style={{ border: "none", background: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }} className="text-gray-400 hover:text-primary transition-colors"><MapPin size={18} /></button>
+                  <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = ev => setImagePreview(ev.target?.result as string); r.readAsDataURL(f); }}} />
                 </div>
               </div>
             </div>
@@ -285,34 +357,99 @@ function EditPostModal({ post, platforms, onClose, onSave }: { post: ScheduledPo
                 <span className="text-xs text-gray-400">Uploaded Image</span>
                 {imagePreview && <button onClick={() => setImagePreview(null)} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 12, color: "#9ca3af" }}>✕</button>}
               </div>
-              {imagePreview ? <img src={imagePreview} alt="preview" className="w-full h-40 object-cover" />
-                : <div className="h-40 flex items-center justify-center"><div className="w-16 h-16 bg-gray-200 rounded-xl flex items-center justify-center text-2xl text-gray-300">🖼</div></div>}
+              {imagePreview
+                ? <img src={imagePreview} alt="preview" className="w-full h-40 object-cover cursor-pointer" onClick={() => fileRef.current?.click()} />
+                : <div className="h-40 flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => fileRef.current?.click()}>
+                    <div className="w-16 h-16 bg-gray-200 rounded-xl flex items-center justify-center text-2xl text-gray-300">🖼</div>
+                  </div>
+              }
             </div>
           </div>
+
+          {/* RIGHT: Platforms */}
           <div className="space-y-2">
+            {/* Single account dropdown */}
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Platforms</span>
+              <select value={editAccount} onChange={e => setEditAccount(e.target.value)}
+                className="text-xs text-primary border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:border-primary cursor-pointer"
+                style={{ maxWidth: 170 }}>
+                <option value="">Select Account</option>
+                {MOCK_ACCOUNTS.map(acc => <option key={acc} value={acc}>{acc}</option>)}
+              </select>
+            </div>
+            {editAccount && (
+              <div className="px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-lg text-xs text-primary font-medium">
+                ✓ Using <span className="font-bold">{editAccount}</span> for all platforms
+              </div>
+            )}
             {platforms.map(p => (
               <div key={p.id} className="flex items-center py-2 border-b border-gray-50">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <PlatformIcon id={p.id} size={18} />
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-gray-700 truncate">{p.name}</div>
-                    <div className="text-xs text-green-500">{p.connected ? "Connected" : ""}</div>
+                    <div className="text-xs">{postPlatforms.includes(p.id) && editAccount ? <span className="text-green-500">{editAccount}</span> : <span className="text-gray-400">Disconnected</span>}</div>
                   </div>
                 </div>
                 <Toggle on={postPlatforms.includes(p.id)} onToggle={() => setPostPlatforms(prev => prev.includes(p.id) ? prev.filter(x => x !== p.id) : [...prev, p.id])} />
-                <button className="ml-2 text-xs text-primary hover:underline" style={{ border: "none", background: "none", cursor: "pointer", whiteSpace: "nowrap" }}>Choose Account</button>
               </div>
             ))}
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mt-2">
-              <CalendarIcon size={14} className="text-gray-400 flex-shrink-0" />
-              <span className="text-xs text-gray-500">Change Date and Time</span>
-              <span className="ml-auto text-xs text-gray-600 font-medium">{post.date} - {post.time}</span>
+
+            {/* Date and Time */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mt-2 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500 font-medium">Change Date and Time</span>
+                <div className="flex items-center gap-1 bg-gray-200 rounded-full p-0.5">
+                  <button onClick={() => setEditIs24hr(false)}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all ${!editIs24hr ? "bg-white text-primary shadow" : "text-gray-400"}`}
+                    style={{ border: "none", cursor: "pointer" }}>12hr</button>
+                  <button onClick={() => setEditIs24hr(true)}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all ${editIs24hr ? "bg-white text-primary shadow" : "text-gray-400"}`}
+                    style={{ border: "none", cursor: "pointer" }}>24hr</button>
+                </div>
+              </div>
+              <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+                className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-xs bg-white focus:outline-none focus:border-primary" />
+              <div className="flex items-center gap-2 flex-wrap">
+                <input type="number"
+                  value={editIs24hr ? String(editAmpm === "PM" && editHour !== 12 ? editHour + 12 : editAmpm === "AM" && editHour === 12 ? 0 : editHour).padStart(2,"0") : editHour}
+                  min={editIs24hr ? 0 : 1} max={editIs24hr ? 23 : 12}
+                  onChange={e => {
+                    const val = Number(e.target.value);
+                    if (editIs24hr) {
+                      const clamped = Math.min(23, Math.max(0, val));
+                      setEditHour(clamped > 12 ? clamped - 12 : clamped === 0 ? 12 : clamped);
+                      setEditAmpm(clamped >= 12 ? "PM" : "AM");
+                    } else {
+                      setEditHour(Math.min(12, Math.max(1, val)));
+                    }
+                  }}
+                  className="w-12 text-center border border-gray-200 rounded-lg p-1.5 text-sm focus:outline-none focus:border-primary bg-white"
+                  style={{ WebkitAppearance: "none", MozAppearance: "textfield" }} />
+                <span className="text-gray-400 font-bold">:</span>
+                <input type="number" value={String(editMinute).padStart(2,"0")} min={0} max={59}
+                  onChange={e => setEditMinute(Math.min(59, Math.max(0, Number(e.target.value))))}
+                  className="w-12 text-center border border-gray-200 rounded-lg p-1.5 text-sm focus:outline-none focus:border-primary bg-white"
+                  style={{ WebkitAppearance: "none", MozAppearance: "textfield" }} />
+                {!editIs24hr && (
+                  <select value={editAmpm} onChange={e => setEditAmpm(e.target.value as "AM" | "PM")}
+                    className="border border-gray-200 rounded-lg p-1.5 text-sm focus:outline-none focus:border-primary bg-white cursor-pointer">
+                    <option>AM</option><option>PM</option>
+                  </select>
+                )}
+                <select value={editTimezone} onChange={e => setEditTimezone(e.target.value)}
+                  className="flex-1 border border-gray-200 rounded-lg p-1.5 text-xs focus:outline-none focus:border-primary bg-white cursor-pointer min-w-0">
+                  {TIMEZONES.map(tz => <option key={tz.label} value={tz.label}>{tz.label}</option>)}
+                </select>
+              </div>
             </div>
           </div>
         </div>
         <div className="flex justify-end gap-3 px-6 pb-5">
           <button onClick={onClose} className="px-5 py-2 bg-gray-400 text-white rounded-lg text-sm font-semibold cursor-pointer hover:bg-gray-500 transition-colors" style={{ border: "none" }}>Discard</button>
-          <button onClick={() => { onSave({ ...post, title, platforms: postPlatforms }); onClose(); }}
+          <button onClick={() => { onSave({ ...post, title, account: editAccount, platforms: postPlatforms, date: editDate, time: `${String(editHour).padStart(2,"0")}:${String(editMinute).padStart(2,"0")} ${editAmpm}` }); onClose(); }}
             className="px-5 py-2 bg-primary text-white rounded-lg text-sm font-semibold cursor-pointer hover:bg-blue-900 transition-colors" style={{ border: "none" }}>
             Save Changes
           </button>
@@ -346,8 +483,11 @@ function DeleteModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: (
 
 export default function SchedulePage() {
   const [caption, setCaption] = useState("");
+  const [platformCaptions, setPlatformCaptions] = useState<Record<string, string>>({});
+  const [activePlatformTab, setActivePlatformTab] = useState("all");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [platforms, setPlatforms] = useState<Platform[]>(INIT_PLATFORMS);
+  const [selectedAccount, setSelectedAccount] = useState("");
   const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [posts, setPosts] = useState<ScheduledPost[]>(INIT_POSTS);
   const [activeTab, setActiveTab] = useState<"scheduled" | "draft">("scheduled");
@@ -357,7 +497,6 @@ export default function SchedulePage() {
   const [showFilter, setShowFilter] = useState(false);
   const [editPost, setEditPost] = useState<ScheduledPost | null>(null);
   const [deletePost, setDeletePost] = useState<ScheduledPost | null>(null);
-  const [chooseAccPlatform, setChooseAccPlatform] = useState<Platform | null>(null);
   const [showSchedulePopup, setShowSchedulePopup] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -370,9 +509,15 @@ export default function SchedulePage() {
   const simulateAI = (type: string) => {
     setAiLoading(type);
     setTimeout(() => {
-      if (type === "caption") setCaption("🚀 Exciting news! Check out our latest products and grab exclusive deals before they're gone. Limited time offer — shop now and save big! 🛒✨");
-      else if (type === "hashtags") setCaption(p => p + "\n\n#SocialDesk #ContentScheduler #DigitalMarketing #SocialMedia #GrowYourBrand");
-      else setCaption("We're thrilled to share something special with you today! Our team worked incredibly hard to bring you an experience you won't forget. 🌟");
+      const generated =
+        type === "caption" ? "🚀 Exciting news! Check out our latest products and grab exclusive deals before they're gone. Limited time offer — shop now and save big! 🛒✨" :
+        type === "hashtags" ? "\n\n#SocialDesk #ContentScheduler #DigitalMarketing #SocialMedia #GrowYourBrand" :
+        "We're thrilled to share something special with you today! Our team worked incredibly hard to bring you an experience you won't forget. 🌟";
+      if (activePlatformTab === "all") {
+        setCaption(p => type === "hashtags" ? p + generated : generated);
+      } else {
+        setPlatformCaptions(prev => ({ ...prev, [activePlatformTab]: type === "hashtags" ? (prev[activePlatformTab] || "") + generated : generated }));
+      }
       setAiLoading(null);
     }, 1200);
   };
@@ -412,11 +557,41 @@ export default function SchedulePage() {
 
         {/* LEFT: Composer */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 flex flex-col">
-          <div className="inline-flex bg-primary text-white text-xs font-bold px-4 py-1.5 rounded-full mb-4 w-fit">Content</div>
+          <div className="inline-flex bg-primary text-white text-xs font-bold px-4 py-1.5 rounded-full mb-3 w-fit">Content</div>
+
+          {/* Platform Tabs — only connected platforms */}
+          {platforms.filter(p => p.connected).length > 0 && (
+            <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+              <button
+                onClick={() => setActivePlatformTab("all")}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${activePlatformTab === "all" ? "bg-primary text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                style={{ border: "none", cursor: "pointer" }}>
+                All
+              </button>
+              {platforms.filter(p => p.connected).map(p => (
+                <button key={p.id}
+                  onClick={() => setActivePlatformTab(p.id)}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${activePlatformTab === p.id ? "bg-primary text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+                  style={{ border: "none", cursor: "pointer" }}>
+                  <PlatformIcon id={p.id} size={11} />
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Textarea + Add to post — all inside one box */}
           <div className="border border-gray-200 rounded-xl bg-gray-50 flex flex-col">
-            <textarea value={caption} onChange={e => setCaption(e.target.value)} placeholder="What would you like to post?"
+            <textarea
+              value={activePlatformTab === "all" ? caption : (platformCaptions[activePlatformTab] || "")}
+              onChange={e => {
+                if (activePlatformTab === "all") {
+                  setCaption(e.target.value);
+                } else {
+                  setPlatformCaptions(prev => ({ ...prev, [activePlatformTab]: e.target.value }));
+                }
+              }}
+              placeholder={activePlatformTab === "all" ? "What would you like to post?" : `Write caption for ${platforms.find(p => p.id === activePlatformTab)?.name}...`}
               className="w-full flex-1 min-h-[130px] p-3 bg-transparent text-sm resize-none focus:outline-none" />
             <div className="flex items-center justify-between px-3 py-2 border-t border-gray-200">
               <span className="text-xs text-gray-500">Add to your post</span>
@@ -466,27 +641,51 @@ export default function SchedulePage() {
 
           {/* Action Buttons */}
           <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-gray-100">
-            <button
-              onClick={() => {
-                if (!caption.trim()) { showToast("Write content first.", "error"); return; }
-                setPosts(prev => [{ id: Date.now(), title: caption.slice(0, 30), account: platforms.find(p => p.connected)?.account || "eGetinnz PH", date: "-", time: "-", platforms: platforms.filter(p => p.connected).map(p => p.id), status: "draft" }, ...prev]);
-                setCaption(""); setImagePreview(null); showToast("Saved as draft.");
-              }}
-              className="flex items-center gap-1 px-2 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 bg-white hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap">
-              <FileText size={12} /> Save as Draft
-            </button>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => { if (!caption.trim()) { showToast("Write content first.", "error"); return; } showToast("Post published! 🚀"); setCaption(""); setImagePreview(null); }}
-                className="flex items-center gap-1 px-2 py-1.5 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-blue-900 transition-colors cursor-pointer whitespace-nowrap" style={{ border: "none" }}>
-                Post Now
-              </button>
-              <button
-                onClick={() => { if (!caption.trim()) { showToast("Write content first.", "error"); return; } setShowSchedulePopup(true); }}
-                className="flex items-center gap-1 px-2 py-1.5 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-blue-900 transition-colors cursor-pointer whitespace-nowrap" style={{ border: "none" }}>
-                Schedule Post
-              </button>
-            </div>
+            {(() => {
+              // Get the active content — either All caption or per-platform captions
+              const hasContent = activePlatformTab === "all"
+                ? caption.trim()
+                : Object.values(platformCaptions).some(c => c.trim()) || caption.trim();
+
+              const getTitle = () => {
+                if (activePlatformTab === "all") return caption.slice(0, 30);
+                const first = Object.values(platformCaptions).find(c => c.trim());
+                return first ? first.slice(0, 30) : caption.slice(0, 30);
+              };
+
+              const clearAll = () => {
+                setCaption("");
+                setPlatformCaptions({});
+                setImagePreview(null);
+                setActivePlatformTab("all");
+              };
+
+              return (
+                <>
+                  <button
+                    onClick={() => {
+                      if (!hasContent) { showToast("Write content first.", "error"); return; }
+                      setPosts(prev => [{ id: Date.now(), title: getTitle() || "Untitled", account: platforms.find(p => p.connected)?.account || "eGetinnz PH", date: "-", time: "-", platforms: platforms.filter(p => p.connected).map(p => p.id), status: "draft" }, ...prev]);
+                      clearAll(); showToast("Saved as draft.");
+                    }}
+                    className="flex items-center gap-1 px-2 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 bg-white hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap">
+                    <FileText size={12} /> Save as Draft
+                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => { if (!hasContent) { showToast("Write content first.", "error"); return; } showToast("Post published! 🚀"); clearAll(); }}
+                      className="flex items-center gap-1 px-2 py-1.5 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-blue-900 transition-colors cursor-pointer whitespace-nowrap" style={{ border: "none" }}>
+                      Post Now
+                    </button>
+                    <button
+                      onClick={() => { if (!hasContent) { showToast("Write content first.", "error"); return; } setShowSchedulePopup(true); }}
+                      className="flex items-center gap-1 px-2 py-1.5 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-blue-900 transition-colors cursor-pointer whitespace-nowrap" style={{ border: "none" }}>
+                      Schedule Post
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -495,7 +694,25 @@ export default function SchedulePage() {
 
           {/* Platforms */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
-            <div className="inline-flex bg-primary text-white text-xs font-bold px-4 py-1.5 rounded-full mb-4 w-fit">Platforms</div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="inline-flex bg-primary text-white text-xs font-bold px-4 py-1.5 rounded-full w-fit">Platforms</div>
+              <select
+                value={selectedAccount}
+                onChange={e => {
+                  setSelectedAccount(e.target.value);
+                  setPlatforms(prev => prev.map(x => x.connected ? { ...x, account: e.target.value } : x));
+                }}
+                className="text-xs text-primary border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-primary cursor-pointer font-medium"
+                style={{ maxWidth: 200 }}>
+                <option value="">Select Account</option>
+                {MOCK_ACCOUNTS.map(acc => <option key={acc} value={acc}>{acc}</option>)}
+              </select>
+            </div>
+            {selectedAccount && (
+              <div className="mb-3 px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg text-xs text-primary font-medium">
+                ✓ Using <span className="font-bold">{selectedAccount}</span> for all connected platforms
+              </div>
+            )}
             <div className="space-y-1">
               {platforms.map(p => (
                 <div key={p.id} className="flex items-center py-2 border-b border-gray-50 last:border-0 gap-2">
@@ -503,15 +720,19 @@ export default function SchedulePage() {
                     <div style={{ flexShrink: 0 }}><PlatformIcon id={p.id} size={18} /></div>
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-gray-700 truncate">{p.name}</div>
-                      <div className={`text-xs ${p.connected ? "text-green-500" : "text-gray-400"}`}>{p.connected ? "Connected" : "Disconnected"}</div>
+                      <div className={`text-xs ${p.connected ? "text-green-500" : "text-gray-400"}`}>
+                        {p.connected ? (p.account ? p.account : "Connected") : "Disconnected"}
+                      </div>
                     </div>
                   </div>
-                  <Toggle on={p.connected} onToggle={() => setPlatforms(prev => prev.map(x => x.id === p.id ? { ...x, connected: !x.connected } : x))} />
-                  <button onClick={() => setChooseAccPlatform(p)}
-                    className="text-xs text-primary hover:underline font-medium whitespace-nowrap"
-                    style={{ border: "none", background: "none", cursor: "pointer", flexShrink: 0 }}>
-                    Choose Account
-                  </button>
+                  <Toggle on={p.connected} onToggle={() => {
+                    setPlatforms(prev => prev.map(x => {
+                      if (x.id !== p.id) return x;
+                      const turningOn = !x.connected;
+                      return { ...x, connected: turningOn, account: turningOn ? (selectedAccount || x.account) : x.account };
+                    }));
+                    if (!p.connected) setActivePlatformTab(p.id);
+                  }} />
                 </div>
               ))}
             </div>
@@ -638,10 +859,6 @@ export default function SchedulePage() {
           onConfirm={() => { setPosts(prev => prev.filter(p => p.id !== deletePost.id)); setDeletePost(null); showToast("Post deleted."); }} />
       )}
 
-      {chooseAccPlatform && (
-        <ChooseAccountModal platform={chooseAccPlatform} onClose={() => setChooseAccPlatform(null)}
-          onSelect={acc => { setPlatforms(prev => prev.map(p => p.id === chooseAccPlatform.id ? { ...p, account: acc } : p)); showToast(`Account changed to ${acc}`); }} />
-      )}
     </div>
   );
 }
