@@ -56,7 +56,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#D6E8F5] flex flex-col md:flex-row md:items-start pt-10 md:pt-24 px-4 md:px-6 relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#D6E8F5] flex flex-col lg:flex-row lg:items-start pt-10 md:pt-16 lg:pt-24 px-4 md:px-8 lg:px-6 relative overflow-x-hidden">
 
       {/* Grid background */}
       <div
@@ -94,21 +94,21 @@ export default function LoginPage() {
         }}
       />
 
-      <div className="relative flex flex-col md:flex-row w-full md:items-start md:pl-15 md:pr-8">
+      <div className="relative flex flex-col lg:flex-row w-full lg:items-start lg:pl-15 lg:pr-8">
 
         {/* Branding — stacks above card on mobile, side-by-side on desktop */}
-        <div className="flex flex-col items-center md:items-start text-center md:text-left md:flex-1 pt-8 md:pt-60 mb-8 md:mb-0">
-          <h1 className="text-6xl sm:text-7xl md:text-9xl font-extrabold leading-none whitespace-nowrap">
+        <div className="flex flex-col items-center lg:items-start text-center lg:text-left lg:flex-1 pt-8 md:pt-16 lg:pt-60 mb-10 lg:mb-0">
+          <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold leading-none whitespace-normal md:whitespace-nowrap">
             <span className="text-[#00BFFF]">Social</span>
             <span className="text-[#1B2F5B]">Desk</span>
           </h1>
-          <p className="mt-4 md:mt-6 text-gray-600 text-sm md:text-lg leading-snug max-w-xs md:max-w-md line-clamp-2">
+          <p className="mt-4 md:mt-8 lg:mt-6 text-gray-600 text-sm md:text-xl lg:text-lg leading-snug max-w-xs md:max-w-xl lg:max-w-md line-clamp-2 md:line-clamp-none">
             Create, schedule, and track performance all in one platform that simplifies your workflow.
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="w-full max-w-sm sm:max-w-md mx-auto md:mx-0 bg-white rounded-2xl shadow-lg p-6 sm:p-8 md:p-10 flex flex-col md:mt-40 md:mr-40 mb-10 md:mb-0">
+        <div className="w-full max-w-sm sm:max-w-md md:max-w-lg mx-auto lg:mx-0 bg-white rounded-2xl shadow-lg p-6 sm:p-8 lg:p-10 flex flex-col lg:mt-40 lg:mr-40 mb-10 lg:mb-0">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-[#1B2F5B] mb-1">Welcome</h2>
           <p className="text-sm text-gray-500 mb-6">Sign in to continue to your account.</p>
 
