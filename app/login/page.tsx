@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import { Eye, EyeOff, User, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, User, Lock, Mail, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,8 +25,38 @@ export default function LoginPage() {
   const [newPasswordFocused, setNewPasswordFocused] = useState(false);
   const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
 
+  // Error states
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [forgotEmailError, setForgotEmailError] = useState("");
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Reset errors
+    setEmailError("");
+    setPasswordError("");
+
+    // Validate email
+    if (!email.trim()) {
+      setEmailError("Email address is required");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (email !== "admin" && !emailRegex.test(email)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+
+    // Validate password
+    if (!password.trim()) {
+      setPasswordError("Password is required");
+      return;
+    }
+    if (password !== "admin" && password.length < 6) {
+      setPasswordError("Password must be at least 6 characters");
+      return;
+    }
 
     const expires = rememberMe ? 7 : 1;
     Cookies.set("auth-token", "valid-token", { expires });
@@ -46,6 +76,21 @@ export default function LoginPage() {
 
   const handleSendResetLink = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Reset error
+    setForgotEmailError("");
+
+    // Validate email
+    if (!forgotEmail.trim()) {
+      setForgotEmailError("Email address is required");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(forgotEmail)) {
+      setForgotEmailError("Please enter a valid email address");
+      return;
+    }
+
     setShowForgotModal(false);
     setShowResetModal(true);
   };
@@ -115,72 +160,98 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="flex flex-col gap-5">
 
             {/* Email - Floating Label */}
-            <div className="relative mt-3">
-              <div className={`flex items-center gap-3 rounded-lg px-4 py-3.5 border-2 transition-all ${
-                emailFocused
-                  ? "border-[#1B2F5B] bg-white"
-                  : email
-                  ? "border-gray-300 bg-white"
-                  : "border-transparent bg-gray-100 hover:bg-gray-200"
-              }`}>
-                <User size={18} className={`shrink-0 transition-colors ${emailFocused ? "text-[#1B2F5B]" : "text-gray-400"}`} />
-                <input
-                  type="text"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onFocus={() => setEmailFocused(true)}
-                  onBlur={() => setEmailFocused(false)}
-                  className="w-full bg-transparent text-sm text-gray-700 focus:outline-none"
-                  required
-                />
+            <div className="mt-3">
+              <div className="relative">
+                <div className={`flex items-center gap-3 rounded-lg px-4 py-3.5 border-2 transition-all ${
+                  emailError
+                    ? "border-red-500 bg-red-50"
+                    : emailFocused
+                    ? "border-[#1B2F5B] bg-white"
+                    : email
+                    ? "border-gray-300 bg-white"
+                    : "border-transparent bg-gray-100 hover:bg-gray-200"
+                }`}>
+                  <User size={18} className={`shrink-0 transition-colors ${emailError ? "text-red-500" : emailFocused ? "text-[#1B2F5B]" : "text-gray-400"}`} />
+                  <input
+                    type="text"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (emailError) setEmailError("");
+                    }}
+                    onFocus={() => setEmailFocused(true)}
+                    onBlur={() => setEmailFocused(false)}
+                    className="w-full bg-transparent text-sm text-gray-700 focus:outline-none leading-tight"
+                    placeholder=" "
+                  />
+                </div>
+                <label
+                  className={`absolute transition-all duration-200 pointer-events-none ${
+                    emailFocused || email
+                      ? "text-xs top-0 -translate-y-1/2 left-3 px-1 bg-white font-medium"
+                      : "text-sm top-1/2 -translate-y-1/2 left-11 text-gray-400"
+                  } ${ emailError ? "text-red-500" : emailFocused ? "text-[#1B2F5B]" : "text-gray-500" }`}
+                >
+                  Email Address
+                </label>
               </div>
-              <label
-                className={`absolute transition-all duration-200 pointer-events-none ${
-                  emailFocused || email
-                    ? "text-xs top-0 -translate-y-1/2 left-3 px-1 bg-white font-medium"
-                    : "text-sm top-1/2 -translate-y-1/2 left-11 text-gray-400"
-                } ${ emailFocused ? "text-[#1B2F5B]" : "text-gray-500" }`}
-              >
-                Email Address
-              </label>
+              {emailError && (
+                <div className="flex items-center gap-2 mt-2 text-red-500 text-xs font-medium">
+                  <AlertCircle size={14} />
+                  {emailError}
+                </div>
+              )}
             </div>
 
             {/* Password - Floating Label */}
-            <div className="relative mt-3">
-              <div className={`flex items-center gap-3 rounded-lg px-4 py-3.5 border-2 transition-all ${
-                passwordFocused
-                  ? "border-[#1B2F5B] bg-white"
-                  : password
-                  ? "border-gray-300 bg-white"
-                  : "border-transparent bg-gray-100 hover:bg-gray-200"
-              }`}>
-                <Lock size={18} className={`shrink-0 transition-colors ${passwordFocused ? "text-[#1B2F5B]" : "text-gray-400"}`} />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => setPasswordFocused(true)}
-                  onBlur={() => setPasswordFocused(false)}
-                  className="w-full bg-transparent text-sm text-gray-700 focus:outline-none"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+            <div className="mt-3">
+              <div className="relative">
+                <div className={`flex items-center gap-3 rounded-lg px-4 py-3.5 border-2 transition-all ${
+                  passwordError
+                    ? "border-red-500 bg-red-50"
+                    : passwordFocused
+                    ? "border-[#1B2F5B] bg-white"
+                    : password
+                    ? "border-gray-300 bg-white"
+                    : "border-transparent bg-gray-100 hover:bg-gray-200"
+                }`}>
+                  <Lock size={18} className={`shrink-0 transition-colors ${passwordError ? "text-red-500" : passwordFocused ? "text-[#1B2F5B]" : "text-gray-400"}`} />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (passwordError) setPasswordError("");
+                    }}
+                    onFocus={() => setPasswordFocused(true)}
+                    onBlur={() => setPasswordFocused(false)}
+                    className="w-full bg-transparent text-sm text-gray-700 focus:outline-none leading-tight"
+                    placeholder=" "
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <label
+                  className={`absolute transition-all duration-200 pointer-events-none ${
+                    passwordFocused || password
+                      ? "text-xs top-0 -translate-y-1/2 left-3 px-1 bg-white font-medium"
+                      : "text-sm top-1/2 -translate-y-1/2 left-11 text-gray-400"
+                  } ${ passwordError ? "text-red-500" : passwordFocused ? "text-[#1B2F5B]" : "text-gray-500" }`}
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+                  Password
+                </label>
               </div>
-              <label
-                className={`absolute transition-all duration-200 pointer-events-none ${
-                  passwordFocused || password
-                    ? "text-xs top-0 -translate-y-1/2 left-3 px-1 bg-white font-medium"
-                    : "text-sm top-1/2 -translate-y-1/2 left-11 text-gray-400"
-                } ${ passwordFocused ? "text-[#1B2F5B]" : "text-gray-500" }`}
-              >
-                Password
-              </label>
+              {passwordError && (
+                <div className="flex items-center gap-2 mt-2 text-red-500 text-xs font-medium">
+                  <AlertCircle size={14} />
+                  {passwordError}
+                </div>
+              )}
             </div>
 
             {/* Remember me */}
@@ -237,34 +308,47 @@ export default function LoginPage() {
             <h3 className="text-xl font-bold text-[#1B2F5B] text-center mb-6">Forgot Password</h3>
             <form onSubmit={handleSendResetLink} className="flex flex-col gap-5">
               {/* Email - Floating Label */}
-              <div className="relative mt-3">
-                <div className={`flex items-center gap-3 rounded-lg px-4 py-3.5 border-2 transition-all ${
-                  forgotEmailFocused
-                    ? "border-[#1B2F5B] bg-white"
-                    : forgotEmail
-                    ? "border-gray-300 bg-white"
-                    : "border-transparent bg-gray-100 hover:bg-gray-200"
-                }`}>
-                  <Mail size={18} className={`shrink-0 transition-colors ${forgotEmailFocused ? "text-[#1B2F5B]" : "text-gray-400"}`} />
-                  <input
-                    type="email"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    onFocus={() => setForgotEmailFocused(true)}
-                    onBlur={() => setForgotEmailFocused(false)}
-                    className="w-full bg-transparent text-sm text-gray-700 focus:outline-none"
-                    required
-                  />
+              <div className="mt-3">
+                <div className="relative">
+                  <div className={`flex items-center gap-3 rounded-lg px-4 py-3.5 border-2 transition-all ${
+                    forgotEmailError
+                      ? "border-red-500 bg-red-50"
+                      : forgotEmailFocused
+                      ? "border-[#1B2F5B] bg-white"
+                      : forgotEmail
+                      ? "border-gray-300 bg-white"
+                      : "border-transparent bg-gray-100 hover:bg-gray-200"
+                  }`}>
+                    <Mail size={18} className={`shrink-0 transition-colors ${forgotEmailError ? "text-red-500" : forgotEmailFocused ? "text-[#1B2F5B]" : "text-gray-400"}`} />
+                    <input
+                      type="text"
+                      value={forgotEmail}
+                      onChange={(e) => {
+                        setForgotEmail(e.target.value);
+                        if (forgotEmailError) setForgotEmailError("");
+                      }}
+                      onFocus={() => setForgotEmailFocused(true)}
+                      onBlur={() => setForgotEmailFocused(false)}
+                      className="w-full bg-transparent text-sm text-gray-700 focus:outline-none leading-tight"
+                      placeholder=" "
+                    />
+                  </div>
+                  <label
+                    className={`absolute transition-all duration-200 pointer-events-none ${
+                      forgotEmailFocused || forgotEmail
+                        ? "text-xs top-0 -translate-y-1/2 left-3 px-1 bg-white font-medium"
+                        : "text-sm top-1/2 -translate-y-1/2 left-11 text-gray-400"
+                    } ${ forgotEmailError ? "text-red-500" : forgotEmailFocused ? "text-[#1B2F5B]" : "text-gray-500" }`}
+                  >
+                    Email Address
+                  </label>
                 </div>
-                <label
-                  className={`absolute transition-all duration-200 pointer-events-none ${
-                    forgotEmailFocused || forgotEmail
-                      ? "text-xs top-0 -translate-y-1/2 left-3 px-1 bg-white font-medium"
-                      : "text-sm top-1/2 -translate-y-1/2 left-11 text-gray-400"
-                  } ${ forgotEmailFocused ? "text-[#1B2F5B]" : "text-gray-500" }`}
-                >
-                  Email
-                </label>
+                {forgotEmailError && (
+                  <div className="flex items-center gap-2 mt-2 text-red-500 text-xs font-medium">
+                    <AlertCircle size={14} />
+                    {forgotEmailError}
+                  </div>
+                )}
               </div>
               <button
                 type="submit"
