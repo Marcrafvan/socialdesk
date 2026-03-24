@@ -67,7 +67,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         </button>
 
         <div className="flex flex-col px-6 pt-8 pb-4">
-          <div className="relative w-full h-20"> 
+          <Link href="/dashboard" onClick={onClose} className="relative w-full h-20 hover:opacity-80 transition-opacity">
               <Image 
                 src="/logo-v2.png" 
                 alt="SocialDesk" 
@@ -76,7 +76,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 className="object-contain object-left" 
                 priority
               />
-          </div>
+          </Link>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-4 space-y-2">
