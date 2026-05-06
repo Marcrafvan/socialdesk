@@ -1,5 +1,6 @@
 const express = require("express");
-const facebookRoutes = require("./routes/facebook.routes");
+const facebookRoutes = require("./routes/meta.routes");
+const pinterestRoutes = require("./routes/pinterest.routes");
 
 const app = express();
 
@@ -15,5 +16,6 @@ app.get("/health", (req, res) => {
 
 // routes
 app.use("/auth/facebook", facebookRoutes);
+app.use("/auth/pinterest", pinterestRoutes);
 
 module.exports = app;
