@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { Eye, EyeOff, User, Lock, Mail, AlertCircle } from "lucide-react";
@@ -29,6 +29,13 @@ export default function LoginPage() {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [forgotEmailError, setForgotEmailError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/")
+      .then((res) => res.json())
+      .then((data) => console.log(data.message))
+      .catch((err) => console.log("Error occured on api"))
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
