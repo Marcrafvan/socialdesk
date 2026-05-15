@@ -130,10 +130,10 @@ function MiniCalendar({ selectedDate, onSelect }: { selectedDate: Date | null; o
       <div className="grid grid-cols-7 gap-0.5">
         {cells.map((day, i) => day === null ? <div key={i} /> : (
           <button key={i} onClick={() => !isPast(day) && onSelect(new Date(year, month, day))}
-            style={{ border: "none", cursor: isPast(day) ? "not-allowed" : "pointer", borderRadius: 6, padding: "3px 0", fontSize: 11, fontWeight: 500,
+            style={{ cursor: isPast(day) ? "not-allowed" : "pointer", borderRadius: 6, padding: "3px 0", fontSize: 11,
+              fontWeight: isToday(day) ? "bold" : 500,
               background: isSel(day) ? "#1e3a5f" : "transparent",
               color: isPast(day) ? "#d1d5db" : isSel(day) ? "white" : isToday(day) ? "#1e3a5f" : "#374151",
-              fontWeight: isToday(day) ? "bold" : 500,
               border: isToday(day) && !isSel(day) ? "1.5px solid #1e3a5f" : "none",
               opacity: isPast(day) ? 0.4 : 1 }}>
             {day}
