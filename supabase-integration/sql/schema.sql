@@ -191,17 +191,19 @@ CREATE TRIGGER oauth_tokens_updated_at
 -- SEED DATA
 
 INSERT INTO platforms (code, name) VALUES
-    ('facebook', 'Facebook'),
-    ('tiktok', 'TikTok'),
+    ('facebook',  'Facebook'),
+    ('tiktok',    'TikTok'),
     ('instagram', 'Instagram'),
-    ('twitter', 'X (Twitter)'),
-    ('linkedin', 'LinkedIn'),
-    ('youtube', 'YouTube');
+    ('x',         'X (Twitter)'),
+    ('linkedin',  'LinkedIn'),
+    ('youtube',   'YouTube'),
+    ('pinterest', 'Pinterest');
 
 INSERT INTO content_types (code, name) VALUES
-    ('post', 'Post'),
-    ('story', 'Story'),
-    ('reel', 'Reel'),
-    ('video', 'Video'),
-    ('carousel', 'Carousel');
+    ('post',      'Post'),
+    ('story',     'Story'),
+    ('reel',      'Reel'),
+    ('video',     'Video'),
+    ('carousel',  'Carousel'),
+    ('image',     'Image');
 
