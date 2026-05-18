@@ -12,10 +12,6 @@ app.use(cors({
 }));
 
 app.get("/api/", (req, res) => {
-  res.send("TEST!")
-});
-
-app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
