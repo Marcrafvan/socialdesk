@@ -18,7 +18,6 @@ const cloudinary = require("../config/cloudinary");
  */
 const uploadToCloudinary = (file) => {
   return new Promise((resolve, reject) => {
-
     // Create Cloudinary upload stream
     const stream = cloudinary.uploader.upload_stream(
       {
@@ -26,13 +25,12 @@ const uploadToCloudinary = (file) => {
         resource_type: "image",
       },
       (error, result) => {
-
         // Handle upload errors
         if (error) return reject(error);
 
         // Resolve uploaded image result
         resolve(result);
-      }
+      },
     );
 
     // Upload file buffer
@@ -49,8 +47,7 @@ const uploadToCloudinary = (file) => {
  * - pins:read
  * - pins:write
  */
-exports.getPinterestAuthUrl = () => {
-
+exports.getPinterestAuthUrl = (userId) => {
   // Pinterest app credentials
   const clientId = process.env.PINTEREST_APP_ID;
   const redirectUri = process.env.PINTEREST_REDIRECT_URI;
@@ -61,12 +58,13 @@ exports.getPinterestAuthUrl = () => {
     "boards:write",
     "pins:read",
     "pins:write",
+    "user_accounts:read", // Added to fetch user profile
   ].join(",");
 
   // Return OAuth authorization URL
   return `https://www.pinterest.com/oauth/?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
-    redirectUri
-  )}&scope=${scopes}&state=123`;
+    redirectUri,
+  )}&scope=${scopes}&state=${userId}`;
 };
 
 /**
@@ -79,7 +77,6 @@ exports.getPinterestAuthUrl = () => {
  * 3. Return OAuth token data
  */
 exports.handlePinterestOAuth = async (code) => {
-
   // Pinterest app credentials
   const clientId = process.env.PINTEREST_APP_ID;
   const clientSecret = process.env.PINTEREST_APP_SECRET;
@@ -93,23 +90,31 @@ exports.handlePinterestOAuth = async (code) => {
   params.append("redirect_uri", redirectUri);
 
   // Encode client credentials for Basic Auth
-  const authHeader = Buffer.from(
-    `${clientId}:${clientSecret}`
-  ).toString("base64");
-
-  // Exchange authorization code for access token
-  const res = await axios.post(
-    `${PINTEREST_BASE}/oauth/token`,
-    params,
-    {
-      headers: {
-        Authorization: `Basic ${authHeader}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    }
+  const authHeader = Buffer.from(`${clientId}:${clientSecret}`).toString(
+    "base64",
   );
 
+  // Exchange authorization code for access token
+  const res = await axios.post(`${PINTEREST_BASE}/oauth/token`, params, {
+    headers: {
+      Authorization: `Basic ${authHeader}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+  });
+
   // Return Pinterest token response
+  return res.data;
+};
+
+/**
+ * Fetches the authenticated user's Pinterest profile.
+ */
+exports.getUserProfile = async (accessToken) => {
+  const res = await axios.get(`${PINTEREST_BASE}/user_account`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
   return res.data;
 };
 
@@ -123,12 +128,7 @@ exports.handlePinterestOAuth = async (code) => {
  * Optional:
  * - description
  */
-exports.createPinterestBoard = async ({
-  accessToken,
-  name,
-  description,
-}) => {
-
+exports.createPinterestBoard = async ({ accessToken, name, description }) => {
   // Validate required parameters
   if (!accessToken || !name) {
     throw new Error("accessToken and name are required");
@@ -143,16 +143,12 @@ exports.createPinterestBoard = async ({
   };
 
   // Create Pinterest board
-  const res = await axios.post(
-    `${PINTEREST_BASE}/boards`,
-    payload,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    }
-  );
+  const res = await axios.post(`${PINTEREST_BASE}/boards`, payload, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+  });
 
   // Return board data
   return res.data;
@@ -173,11 +169,8 @@ exports.createPinterestPin = async ({
   link,
   file,
 }) => {
-
   // Validate uploaded image
   if (!file) throw new Error("Image file is required");
-
-  console.log(accessToken);
 
   // Upload image to Cloudinary
   const uploadResult = await uploadToCloudinary(file);
@@ -206,16 +199,12 @@ exports.createPinterestPin = async ({
   };
 
   // Create Pinterest pin
-  const res = await axios.post(
-    `${PINTEREST_BASE}/pins`,
-    payload,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    }
-  );
+  const res = await axios.post(`${PINTEREST_BASE}/pins`, payload, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+  });
 
   // Return created pin and uploaded image URL
   return {
