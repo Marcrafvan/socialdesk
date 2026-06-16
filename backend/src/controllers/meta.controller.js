@@ -12,7 +12,12 @@ const GRAPH_URL = "https://graph.facebook.com/v25.0";
  * for account authentication and permissions approval.
  */
 exports.redirectToFacebook = (req, res) => {
-  const url = facebookService.getAuthUrl();
+  const userId = req.query.userId;
+  if (!userId) {
+    return res.status(400).json({ error: "Missing userId" });
+  }
+
+  const url = facebookService.getAuthUrl(userId);
 
   // Redirect user to Facebook OAuth screen
   res.redirect(url);
@@ -32,6 +37,7 @@ exports.handleFacebookCallback = async (req, res) => {
   try {
     // OAuth authorization code from Facebook
     const code = req.query.code;
+    const userId = req.query.state;
 
     // Exchange code for access token and user data
     const data = await facebookService.handleOAuth(code, process.env.FB_REDIRECT_URI);
@@ -41,16 +47,19 @@ exports.handleFacebookCallback = async (req, res) => {
     console.log("Facebook redirect:");
 
     // User access token
-    const accessToken = data.user_access_token;
+    const shortLivedToken = data.user_access_token;
 
-    console.log("User access token:", accessToken);
+    console.log("User access token:", shortLivedToken);
+
+    // Exchange for long lived token
+    const longLivedToken = await facebookService.getLongLivedToken(shortLivedToken);
 
     // Fetch Facebook pages connected to the user
     const pagesRes = await axios.get(
       `${GRAPH_URL}/me/accounts`,
       {
         params: {
-          access_token: accessToken,
+          access_token: longLivedToken,
         },
       }
     );
@@ -64,6 +73,25 @@ exports.handleFacebookCallback = async (req, res) => {
 
     // Check if page has Instagram Business account
     if (page) {
+      // Save social account and token to the database
+      const dbService = require("../services/db.service");
+      const platformId = await dbService.getPlatformId("facebook");
+      
+      const savedAccount = await dbService.upsertSocialAccount({
+        userId,
+        platformId,
+        externalId: page.id,
+        username: page.name,
+        displayName: page.name,
+        profileUrl: `https://facebook.com/${page.id}`,
+        avatarUrl: null
+      });
+
+      await dbService.upsertOAuthToken({
+        socialAccountId: savedAccount.id,
+        accessToken: page.access_token, // Never-expiring page token
+      });
+
       const pageDetails = await axios.get(
         `${GRAPH_URL}/${page.id}`,
         {
@@ -416,6 +444,32 @@ exports.createInstagramReelPost = async (req, res) => {
     // Handle reel upload/publish errors
     return res.status(500).json({
       error: error.response?.data || error.message,
+    });
+  }
+};
+
+/**
+ * Endpoint to explicitly refresh a Facebook OAuth token
+ */
+exports.refreshToken = async (req, res) => {
+  try {
+    const { socialAccountId } = req.body;
+    
+    if (!socialAccountId) {
+      return res.status(400).json({ error: "socialAccountId is required" });
+    }
+
+    const updatedToken = await facebookService.refreshOAuthToken(socialAccountId);
+
+    return res.json({
+      success: true,
+      message: "Token refreshed successfully",
+      token: updatedToken
+    });
+  } catch (error) {
+    console.error("Refresh Token Error:", error);
+    return res.status(500).json({
+      error: error.message || "Failed to refresh token",
     });
   }
 };

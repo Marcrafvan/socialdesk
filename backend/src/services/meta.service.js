@@ -50,17 +50,15 @@ exports.handleOAuth = async (code, redirectUri) => {
     },
   });
 
-  // User access token from Facebook
   const userAccessToken = tokenRes.data.access_token;
 
-  // Fetch Facebook pages linked to the user
   const pagesRes = await axios.get(`${FB_BASE}/me/accounts`, {
     params: {
       access_token: userAccessToken,
     },
   });
 
-  // Return token and page data
+  // return token and page data
   return {
     user_access_token: userAccessToken,
     pages: pagesRes.data.data,
@@ -68,7 +66,7 @@ exports.handleOAuth = async (code, redirectUri) => {
 };
 
 /**
- * Exchanges a short-lived user token for a long-lived one (60 days).
+ * exchanges a short-lived user token for a long-lived one (60 days).
  */
 exports.getLongLivedToken = async (shortLivedToken) => {
   const res = await axios.get(`${FB_BASE}/oauth/access_token`, {
