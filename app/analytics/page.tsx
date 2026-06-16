@@ -44,7 +44,8 @@ import {
 } from "recharts";
 
 export default function AnalyticsPage() {
-  const [selectedPage, setSelectedPage] = useState("All Pages");
+  // "all" = All Pages view; otherwise holds the social_account id
+  const [selectedAccountId, setSelectedAccountId] = useState<string>("all");
   const [selectedPlatform, setSelectedPlatform] = useState("All Platforms");
   const [activeTab, setActiveTab] = useState("All");
   const [exportOpen, setExportOpen] = useState(false);
@@ -70,6 +71,71 @@ export default function AnalyticsPage() {
   const [filteredExportOpen, setFilteredExportOpen] = useState(false);
   const [filteredDatePickerOpen, setFilteredDatePickerOpen] = useState(false);
   const [filteredDatePickerPosition, setFilteredDatePickerPosition] = useState({ left: 8, top: 8, width: 288 });
+
+  // --- ACCOUNTS (for pages dropdown) ---
+  type Account = { id: string; display_name: string | null; username: string | null; platforms: { code: string; name: string } | null };
+  const [accounts, setAccounts] = useState<Account[]>([]);
+
+  useEffect(() => {
+    fetch('/api/accounts')
+      .then(r => r.json())
+      .then(data => setAccounts(Array.isArray(data) ? data : []));
+  }, []);
+
+  // --- SUMMARY (page stats, engagement trend, overview cards) ---
+  const [pageStatsData, setPageStatsData] = useState<PageStatsPoint[]>([]);
+  const [engagementTrendBarData, setEngagementTrendBarData] = useState<{ month: string; rate: number }[]>([]);
+  const [overviewData, setOverviewData] = useState({ engagement_rate: 0, total_likes: 0, total_comments: 0 });
+
+  useEffect(() => {
+    const params = new URLSearchParams({ period_type: 'monthly' });
+    if (selectedAccountId !== 'all') params.set('account_id', selectedAccountId);
+    if (dateRange.from) params.set('from', dateRange.from.toISOString().split('T')[0]);
+    if (dateRange.to)   params.set('to',   dateRange.to.toISOString().split('T')[0]);
+
+    fetch(`/api/analytics/summary?${params}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) return;
+        setPageStatsData(data.page_stats?.map((p: any) => ({ month: p.period, followers: p.followers, likes: p.likes, views: p.views, shares: p.shares, comments: p.comments })) ?? []);
+        setEngagementTrendBarData(data.engagement_trend?.map((p: any) => ({ month: p.period, rate: p.rate })) ?? []);
+        setOverviewData(data.overview ?? { engagement_rate: 0, total_likes: 0, total_comments: 0 });
+      });
+  }, [selectedAccountId, dateRange]);
+
+  // --- TOP POSTS ---
+  const [topPosts, setTopPosts] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (selectedAccountId !== 'all') return;
+    const params = new URLSearchParams({ limit: '5' });
+    if (dateRange.from) params.set('from', dateRange.from.toISOString().split('T')[0]);
+    if (dateRange.to)   params.set('to',   dateRange.to.toISOString().split('T')[0]);
+
+    fetch(`/api/analytics/top-posts?${params}`)
+      .then(r => r.json())
+      .then(data => setTopPosts(Array.isArray(data) ? data : []));
+  }, [selectedAccountId, dateRange]);
+
+  // --- SPECIFIC PAGE: POSTS TABLE + KPI ---
+  const [specificPagePosts, setSpecificPagePosts] = useState<any[]>([]);
+  const [kpi, setKpi] = useState({ total_posts: 0, total_followers: 0, total_likes: 0, total_comments: 0, total_shares: 0 });
+
+  useEffect(() => {
+    if (selectedAccountId === 'all') return;
+    const params = new URLSearchParams({ account_id: selectedAccountId, tab: activeTab.toLowerCase() });
+    if (selectedPlatform !== 'All Platforms') params.set('platform', selectedPlatform.toLowerCase());
+    if (dateRange.from) params.set('from', dateRange.from.toISOString().split('T')[0]);
+    if (dateRange.to)   params.set('to',   dateRange.to.toISOString().split('T')[0]);
+
+    fetch(`/api/analytics/posts?${params}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) return;
+        setSpecificPagePosts(data.posts ?? []);
+        setKpi(data.kpi ?? { total_posts: 0, total_followers: 0, total_likes: 0, total_comments: 0, total_shares: 0 });
+      });
+  }, [selectedAccountId, selectedPlatform, activeTab, dateRange]);
 
   // --- DATE PICKER HELPERS ---
   const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -221,19 +287,8 @@ export default function AnalyticsPage() {
     };
   }, [filteredDatePickerOpen, calMode]);
 
-  // BACKEND NOTE: These arrays should eventually be fetched from the database
-  const pages = ["All Pages", "eGetinnz PH", "eGetinnz USA", "Fibei PH", "Fibei USA", "Digitimmerse PH", "Digitimmerse USA"];
   const platforms = ["All Platforms", "Facebook", "YouTube", "Instagram", "X", "Pinterest", "Tiktok"];
   const tabs = ["All", "Completed", "Missing"];
-
-  // --- MOCK DATA FOR "ALL PAGES" VIEW ---
-  const topPosts = [
-    { id: 1, title: "FibeiTravel.com | Post-Valentine's Bohol Dive 🤿", platform: "Instagram", caption: "Celebrate the post-Valentine's vibes underwater! Explore Bohol's reefs...", date: "February 20, 2026", views: "3k", reacts: "1.5k", comments: "157", shares: "25", engagement: "12%", status: "Completed" },
-    { id: 2, title: "eGetinnz.com | Celebrate CNY in Cebu 🧧", platform: "Facebook", caption: "Ring in the Year of the Snake with stunning Cebu getaways!", date: "February 15, 2026", views: "19k", reacts: "4k", comments: "290", shares: "30", engagement: "27%", status: "Completed" },
-    { id: 3, title: "FibeiTravel.com | Last-Minute Romantic Vienna 🎻", platform: "Twitter", caption: "Still looking for the perfect Valentine's escape? Vienna awaits...", date: "February 12, 2026", views: "2.1k", reacts: "800", comments: "95", shares: "18", engagement: "15%", status: "Completed" },
-    { id: 4, title: "eGetinnz.com | Valentine's Day Memories 💖", platform: "Tiktok", caption: "Make your Valentine's Day unforgettable with these dreamy stays...", date: "February 14, 2026", views: "5k", reacts: "2.3k", comments: "210", shares: "45", engagement: "11%", status: "Completed" },
-    { id: 5, title: "FibeiTravel.com | Extend the Romance — 11-Day Luzon Tour 💗", platform: "Pinterest", caption: "Valentine's may be over, but love and adventure continue! Explore Luzon's...", date: "February 18, 2026", views: "23k", reacts: "6k", comments: "450", shares: "120", engagement: "23%", status: "Completed" },
-  ];
 
   type PageStatsPoint = {
     month: string;
@@ -254,14 +309,6 @@ export default function AnalyticsPage() {
     );
   };
 
-  const pageStatsData: PageStatsPoint[] = [
-    { month: "Jan", followers: 15000, likes: 8000, views: 12000, shares: 3000, comments: 5000 },
-    { month: "Feb", followers: 20000, likes: 12000, views: 18000, shares: 5200, comments: 13000 },
-    { month: "Mar", followers: 35000, likes: 21000, views: 26000, shares: 7600, comments: 11000 },
-    { month: "Apr", followers: 28000, likes: 27000, views: 24000, shares: 6800, comments: 9000 },
-    { month: "May", followers: 22000, likes: 16000, views: 20500, shares: 9000, comments: 7800 },
-    { month: "Jun", followers: 30000, likes: 19000, views: 32000, shares: 7000, comments: 10000 },
-  ];
 
   const pageStatsSeries: Array<{ key: PageStatsSeriesKey; color: string }> = [
     { key: "followers", color: "#4e9a6e" },
@@ -274,11 +321,11 @@ export default function AnalyticsPage() {
   const activePageStatsSeries = pageStatsSeries.filter(s => pageStatsFilter.includes(s.key));
 
   const pageStatsPeaks = pageStatsSeries.map((series) => {
+    if (pageStatsData.length === 0) return { ...series, month: '—', value: 0 };
     const peakPoint = pageStatsData.reduce((maxPoint, point) =>
       point[series.key] > maxPoint[series.key] ? point : maxPoint,
       pageStatsData[0]
     );
-
     return {
       ...series,
       month: peakPoint.month,
@@ -286,12 +333,6 @@ export default function AnalyticsPage() {
     };
   });
 
-  const engagementTrendBarData = [
-    { month: "Jan", rate: 20 }, { month: "Feb", rate: 14 }, { month: "Mar", rate: 25 },
-    { month: "Apr", rate: 40 }, { month: "May", rate: 27 }, { month: "Jun", rate: 30 },
-    { month: "Jul", rate: 10 }, { month: "Sep", rate: 4 },  { month: "Oct", rate: 18 },
-    { month: "Nov", rate: 30 }, { month: "Dec", rate: 50 },
-  ];
 
   // Map engagement rate to blue shade (higher rate = darker blue)
   const getEngagementColor = (rate: number) => {
@@ -322,15 +363,6 @@ export default function AnalyticsPage() {
   ];
   const bestTimeVisitors = "22,658"; // BACKEND NOTE: Replace with the actual total visitors count from the API
 
-  // --- MOCK DATA FOR "SPECIFIC PAGE" VIEW ---
-  // BACKEND NOTE: Fetch this table data based on the selectedPage, selectedPlatform, and activeTab filters
-  const specificPagePosts = [
-    { id: 1, title: "FibeiTravel.com | Post-Valentine's...", caption: "Celebrate the post-Valentine's vibes underwater! Explore Bohol's reefs...", date: "February 20, 2026", views: "3k", reacts: "1.5k", comments: "157", shares: "25", engagement: "12%", status: "Completed" },
-    { id: 2, title: "FibeiTravel.com | Coron Island Adventure", caption: "Valentine's may be over, but adventure is just getting started! Explore...", date: "February 28, 2026", views: "2k", reacts: "4k", comments: "290", shares: "30", engagement: "13%", status: "Missing" },
-    { id: 3, title: "FibeiTravel.com | Makati Street Food Tour", caption: "Valentine's may be over, but flavor adventures continue! Explore Makati's...", date: "February 24, 2026", views: "5k", reacts: "3k", comments: "300", shares: "15", engagement: "23%", status: "Completed" },
-    { id: 4, title: "FibeiTravel.com | Extend the Romance...", caption: "Valentine's may be over, but romance isn't! Explore Bohol's scenic...", date: "February 28, 2026", views: "0k", reacts: "0k", comments: "0", shares: "0", engagement: "0%", status: "Missing" },
-    { id: 5, title: "FibeiTravel.com | Extend the Romance...", caption: "Valentine's may be over, but love and adventure continue! Explore Luzon's...", date: "March 01, 2026", views: "0k", reacts: "0k", comments: "0", shares: "0", engagement: "0%", status: "Completed" },
-  ];
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -380,14 +412,19 @@ export default function AnalyticsPage() {
           {/* BACKEND NOTE: Dropdowns update state. Use useEffect to refetch data on change. */}
           <div className="relative flex-1 min-w-0">
             <label htmlFor="analytics-page-select" className="sr-only">Select Page</label>
-            <select 
+            <select
               id="analytics-page-select"
               name="analytics-page"
-              value={selectedPage}
-              onChange={(e) => setSelectedPage(e.target.value)}
+              value={selectedAccountId}
+              onChange={(e) => setSelectedAccountId(e.target.value)}
               className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-1.5 sm:py-2 pl-3 pr-7 sm:pr-9 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer shadow-sm font-medium text-xs sm:text-sm"
             >
-              {pages.map((page) => <option key={page} value={page}>{page}</option>)}
+              <option value="all">All Pages</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.display_name ?? a.username ?? a.id}
+                </option>
+              ))}
             </select>
             <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
           </div>
@@ -794,7 +831,7 @@ export default function AnalyticsPage() {
                 <Scan size={20} className="hidden lg:block" />
               </div>
               <div className="w-full">
-                <h4 className="text-sm sm:text-lg lg:text-2xl xl:text-3xl font-bold text-gray-900">24.6k</h4>
+                <h4 className="text-sm sm:text-lg lg:text-2xl xl:text-3xl font-bold text-gray-900">{overviewData.engagement_rate.toFixed(1)}%</h4>
                 <p className="text-[7px] sm:text-[9px] lg:text-xs text-gray-600 font-medium leading-tight mt-0.5">Engagement Rate Trend</p>
                 <div className="mt-1 sm:mt-1.5 lg:mt-3 inline-flex items-center gap-0.5 bg-white/60 px-1 sm:px-1.5 py-0.5 rounded text-[6px] sm:text-[7px] lg:text-[10px] font-bold text-gray-700">
                   <ArrowUp size={6} className="text-gray-500" /> 0.8% <span className="text-gray-400 font-normal ml-0.5">Weekly</span>
@@ -808,7 +845,7 @@ export default function AnalyticsPage() {
                 <Star size={20} className="fill-yellow-400 hidden lg:block" />
               </div>
               <div className="w-full">
-                <h4 className="text-sm sm:text-lg lg:text-2xl xl:text-3xl font-bold text-gray-900">16.2k</h4>
+                <h4 className="text-sm sm:text-lg lg:text-2xl xl:text-3xl font-bold text-gray-900">{formatPeakValue(overviewData.total_likes)}</h4>
                 <p className="text-[7px] sm:text-[9px] lg:text-xs text-gray-600 font-medium leading-tight mt-0.5">Account Likes</p>
                 <div className="mt-1 sm:mt-1.5 lg:mt-3 inline-flex items-center gap-0.5 bg-white/60 px-1 sm:px-1.5 py-0.5 rounded text-[6px] sm:text-[7px] lg:text-[10px] font-bold text-gray-700">
                   <ArrowUp size={6} className="text-yellow-500" /> 0.3% <span className="text-gray-400 font-normal ml-0.5">Monthly</span>
@@ -822,7 +859,7 @@ export default function AnalyticsPage() {
                 <MessageCircle size={20} className="fill-pink-400 text-pink-400 hidden lg:block" />
               </div>
               <div className="w-full">
-                <h4 className="text-sm sm:text-lg lg:text-2xl xl:text-3xl font-bold text-gray-900">27.8k</h4>
+                <h4 className="text-sm sm:text-lg lg:text-2xl xl:text-3xl font-bold text-gray-900">{formatPeakValue(overviewData.total_comments)}</h4>
                 <p className="text-[7px] sm:text-[9px] lg:text-xs text-gray-600 font-medium leading-tight mt-0.5">User Comments</p>
                 <div className="mt-1 sm:mt-1.5 lg:mt-3 inline-flex items-center gap-0.5 bg-white/60 px-1 sm:px-1.5 py-0.5 rounded text-[6px] sm:text-[7px] lg:text-[10px] font-bold text-gray-700">
                   <ArrowUp size={6} className="text-pink-500" /> 5.36% <span className="text-gray-400 font-normal ml-0.5">Weekly</span>
@@ -836,7 +873,7 @@ export default function AnalyticsPage() {
       {/* ========================================= */}
       {/* VIEW 1: "ALL PAGES" SELECTED              */}
       {/* ========================================= */}
-      {selectedPage === "All Pages" ? (
+      {selectedAccountId === "all" ? (
         <>
           {/* ========================================================================= */}
           {/* Best Time for Posting & Engagement Rate Trend                             */}
@@ -1072,23 +1109,23 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-2.5 min-w-0">
             <div className="bg-white p-2 sm:p-2.5 lg:p-4 rounded-lg sm:rounded-xl border border-gray-200 shadow-sm">
               <p className="text-[8px] sm:text-[10px] lg:text-xs text-gray-500 font-medium mb-0.5">Total Posts</p>
-              <h2 className="text-sm sm:text-base lg:text-xl xl:text-2xl font-bold text-gray-900">15,685</h2>
+              <h2 className="text-sm sm:text-base lg:text-xl xl:text-2xl font-bold text-gray-900">{kpi.total_posts.toLocaleString()}</h2>
             </div>
             <div className="bg-white p-2 sm:p-2.5 lg:p-4 rounded-lg sm:rounded-xl border border-gray-200 shadow-sm">
               <p className="text-[8px] sm:text-[10px] lg:text-xs text-gray-500 font-medium mb-0.5">Total Followers</p>
-              <h2 className="text-sm sm:text-base lg:text-xl xl:text-2xl font-bold text-gray-900">29,451</h2>
+              <h2 className="text-sm sm:text-base lg:text-xl xl:text-2xl font-bold text-gray-900">{kpi.total_followers.toLocaleString()}</h2>
             </div>
             <div className="bg-white p-2 sm:p-2.5 lg:p-4 rounded-lg sm:rounded-xl border border-gray-200 shadow-sm">
               <p className="text-[8px] sm:text-[10px] lg:text-xs text-gray-500 font-medium mb-0.5">Total Likes</p>
-              <h2 className="text-sm sm:text-base lg:text-xl xl:text-2xl font-bold text-gray-900">521,998</h2>
+              <h2 className="text-sm sm:text-base lg:text-xl xl:text-2xl font-bold text-gray-900">{kpi.total_likes.toLocaleString()}</h2>
             </div>
             <div className="bg-white p-2 sm:p-2.5 lg:p-4 rounded-lg sm:rounded-xl border border-gray-200 shadow-sm">
               <p className="text-[8px] sm:text-[10px] lg:text-xs text-gray-500 font-medium mb-0.5">Total Comments</p>
-              <h2 className="text-sm sm:text-base lg:text-xl xl:text-2xl font-bold text-gray-900">21,052</h2>
+              <h2 className="text-sm sm:text-base lg:text-xl xl:text-2xl font-bold text-gray-900">{kpi.total_comments.toLocaleString()}</h2>
             </div>
             <div className="bg-white p-2 sm:p-2.5 lg:p-4 rounded-lg sm:rounded-xl border border-gray-200 shadow-sm col-span-2 lg:col-span-1">
               <p className="text-[8px] sm:text-[10px] lg:text-xs text-gray-500 font-medium mb-0.5">Total Shares</p>
-              <h2 className="text-sm sm:text-base lg:text-xl xl:text-2xl font-bold text-gray-900">24,679</h2>
+              <h2 className="text-sm sm:text-base lg:text-xl xl:text-2xl font-bold text-gray-900">{kpi.total_shares.toLocaleString()}</h2>
             </div>
           </div>
 
@@ -1163,11 +1200,16 @@ export default function AnalyticsPage() {
                 {/* All Pages Dropdown */}
                 <div className="relative max-w-22.5 sm:max-w-none">
                   <select
-                    value={selectedPage}
-                    onChange={(e) => setSelectedPage(e.target.value)}
+                    value={selectedAccountId}
+                    onChange={(e) => setSelectedAccountId(e.target.value)}
                     className="w-full appearance-none bg-white border border-gray-200 text-gray-700 py-1.5 pl-2.5 pr-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer shadow-sm font-medium text-xs truncate"
                   >
-                    {pages.map((page) => <option key={page} value={page}>{page}</option>)}
+                    <option value="all">All Pages</option>
+                    {accounts.map((acc) => (
+                      <option key={acc.id} value={acc.id}>
+                        {acc.display_name ?? acc.username ?? acc.id}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown size={12} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                 </div>
