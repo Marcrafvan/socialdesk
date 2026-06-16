@@ -1,13 +1,19 @@
 const pinterestService = require("../services/pinterest.service");
+const dbService = require("../services/db.service");
 
 /**
  * Redirects the user to Pinterest OAuth login page
  * for authentication and permission approval.
  */
 exports.redirectToPinterest = (req, res) => {
+  const { userId } = req.query;
+
+  if (!userId) {
+    return res.status(400).json({ error: "userId is required" });
+  }
 
   // Generate Pinterest OAuth authorization URL
-  const url = pinterestService.getPinterestAuthUrl();
+  const url = pinterestService.getPinterestAuthUrl(userId);
 
   // Redirect user to Pinterest login page
   res.redirect(url);
@@ -23,28 +29,62 @@ exports.redirectToPinterest = (req, res) => {
  */
 exports.handlePinterestCallback = async (req, res) => {
   try {
+    // Extract authorization code and userId from query params
+    const { code, state: userId } = req.query;
 
-    // Extract authorization code from query params
-    const { code } = req.query;
-
-    // Validate authorization code
+    // Validate authorization code and userId
     if (!code) {
       return res.status(400).json({
         error: "Authorization code missing",
+      });
+    }
+    if (!userId) {
+      return res.status(400).json({
+        error: "userId (state) missing",
       });
     }
 
     // Exchange code for Pinterest access token
     const tokenData = await pinterestService.handlePinterestOAuth(code);
 
+    // Fetch the user's Pinterest profile
+    const profile = await pinterestService.getUserProfile(
+      tokenData.access_token,
+    );
+
+    // Get the internal platform ID for Pinterest
+    const platformId = await dbService.getPlatformId("pinterest");
+
+    // Persist the Pinterest account
+    const account = await dbService.upsertSocialAccount({
+      userId,
+      platformId,
+      externalId: profile.username || "unknown", // Pinterest typically returns username
+      username: profile.username,
+      displayName: profile.username, // Using username as display name
+      profileUrl:
+        profile.website_url || `https://www.pinterest.com/${profile.username}/`,
+      avatarUrl: profile.profile_image,
+      metadata: profile,
+    });
+
+    // Persist the OAuth token (permanent token, no expiry as per requirements)
+    await dbService.upsertOAuthToken({
+      socialAccountId: account.id,
+      accessToken: tokenData.access_token,
+      refreshToken: null, // Skipping refresh logic
+      tokenType: tokenData.token_type || "Bearer",
+      expiresAt: null, // Pinterest tokens don't expire
+      scope: tokenData.scope,
+    });
+
     // Return successful OAuth response
     res.json({
       success: true,
-      token: tokenData,
+      message: "Pinterest account linked successfully",
+      account,
     });
-
   } catch (err) {
-
     // Handle OAuth/token exchange errors
     res.status(500).json({
       error: err.response?.data || err.message,
@@ -63,12 +103,7 @@ exports.handlePinterestCallback = async (req, res) => {
  * - description
  */
 exports.createPinterestBoard = async (req, res) => {
-
-  // Debug log to confirm controller execution
-  console.log("HIT");
-
   try {
-
     // Extract request body data
     const { accessToken, name, description } = req.body;
 
@@ -91,9 +126,7 @@ exports.createPinterestBoard = async (req, res) => {
       success: true,
       board,
     });
-
   } catch (err) {
-
     // Handle board creation errors
     res.status(500).json({
       error: err.response?.data || err.message,
@@ -111,18 +144,11 @@ exports.createPinterestBoard = async (req, res) => {
  */
 exports.createPin = async (req, res) => {
   try {
-
     // Uploaded image/file from multer middleware
     const file = req.file;
 
     // Extract request body fields
-    const {
-      accessToken,
-      boardId,
-      title,
-      description,
-      link,
-    } = req.body || {};
+    const { accessToken, boardId, title, description, link } = req.body || {};
 
     // Validate required fields
     if (!accessToken || !boardId) {
@@ -146,9 +172,7 @@ exports.createPin = async (req, res) => {
       success: true,
       ...result,
     });
-
   } catch (err) {
-
     // Handle pin creation errors
     res.status(500).json({
       error: err.response?.data || err.message,
