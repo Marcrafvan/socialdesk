@@ -1,0 +1,18 @@
+const express = require("express");
+const router = express.Router();
+const multer = require("multer");
+
+const cloudinaryupload = require("../media/upload.middleware");
+const upload = multer({ storage: multer.memoryStorage() });
+const facebookController = require("./facebook.controller");
+
+router.get("/redirect", facebookController.redirectToFacebook);
+router.get("/callback", facebookController.handleFacebookCallback);
+router.post("/post", facebookController.postMessage);
+router.post("/post-photo", upload.single("source"), facebookController.postPhoto);
+router.post("/schedule-photo", cloudinaryupload.single("source"),facebookController.schedulePhotoPost);
+router.post("/instagram/post", cloudinaryupload.single("source"), facebookController.createInstagramPost);
+router.post("/instagram/postreels", cloudinaryupload.single("source"), facebookController.createInstagramReelPost);
+router.post("/refresh", facebookController.refreshToken);
+
+module.exports = router;
